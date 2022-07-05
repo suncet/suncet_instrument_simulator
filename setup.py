@@ -18,7 +18,7 @@ from setuptools import find_packages, setup
 with open('requirements.txt', 'r') as txt_file:
     requirements = [line.strip() for line in txt_file]
 
-with open('version.txt', 'r') as txt_file:
+with open('version', 'r') as txt_file:
     version_string = [line.strip() for line in txt_file][0]
 
 # Run setup()
