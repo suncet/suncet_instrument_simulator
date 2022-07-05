@@ -1,5 +1,8 @@
 # SunCET Instrument Simulator
 
+![Python 3.8 | 3.9 | 3.10](https://img.shields.io/badge/python-3.8_|_3.9|_3.10-blue)
+[![Tests](https://github.com/suncet/suncet_instrument_simulator/actions/workflows/tests.yml/badge.svg)](https://github.com/suncet/suncet_instrument_simulator/actions/workflows/tests.yml)
+
 [![Example of synthetic SunCET observations generated with this code](https://img.youtube.com/vi/GFjgdv2Y7gY/0.jpg)](https://www.youtube.com/watch?v=GFjgdv2Y7gY)
 
 
