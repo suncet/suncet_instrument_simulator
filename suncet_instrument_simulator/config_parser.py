@@ -56,4 +56,4 @@ class Config:
 if __name__ == "__main__":
     filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = Config(filename)
-    print(config.apply_psf)
+    print(config.apply_psf)  # Just an example to see something return when running as a script
