@@ -131,3 +131,6 @@ dmypy.json
 # macOS directory files
 *.DS_Store
 .DS_Store
+
+# Mirror coating test files
+*11000A.txt
