@@ -5,7 +5,7 @@ import astropy.units as u
 
 class MirrorCoating: 
 
-    def __init__(self, config, target_wavelengths=np.array([171, 175,177, 180,185, 188, 194, 195, 202, 204, 211])*u.Angstrom):
+    def __init__(self, config, target_wavelengths=np.array([171, 175, 177, 180, 185, 188, 194, 195, 202, 204, 211])*u.Angstrom):
         self.config = config
         self.wavelengths = target_wavelengths
         self.reflectivity = np.nan
