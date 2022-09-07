@@ -134,3 +134,4 @@ dmypy.json
 
 # Mirror coating test files
 *11000A.txt
+.vscode/settings.json

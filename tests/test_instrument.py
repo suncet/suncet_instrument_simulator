@@ -3,26 +3,24 @@ import urllib.request
 import ssl
 import numpy as np
 import astropy.units as u
-from suncet_instrument_simulator import config_parser, mirror_coating as mc
+from suncet_instrument_simulator import config_parser, instrument as instr
 
 tmp_filename = 'B4C_Mo_Al_1-11000A.txt'
 
 
-def test_mirror_coating():
-    mirror_coating = setup_mirror_coating()
-
-    assert mirror_coating.name == 'B4C_Mo_Al'
-    assert mirror_coating.wavelengths.unit == u.Angstrom
-    assert isinstance(mirror_coating.reflectivity, np.ndarray)
-
+def test_instrument():
+    instrument = setup_instrument()
+    run_mirror_coating_tests(instrument)
     delete_tmp_file()
 
 
-def setup_mirror_coating():
+def setup_instrument():
     download_mirror_coating_data_file()
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = config_parser.Config(config_filename)
-    return mc.MirrorCoating(config)
+    instrument = instr.Instrument(config)
+    instrument.interpolate_mirror_coating_reflectivity()
+    return instrument
 
 
 def download_mirror_coating_data_file():
@@ -34,9 +32,15 @@ def download_mirror_coating_data_file():
         f.write(data)
 
 
+def run_mirror_coating_tests(instrument):
+    assert instrument.coating_name == 'B4C_Mo_Al'
+    assert instrument.wavelengths.unit == u.Angstrom
+    assert isinstance(instrument.reflectivity, np.ndarray)
+
+
 def delete_tmp_file():
     os.remove(tmp_filename)
 
 
 if __name__ == "__main__":
-    test_mirror_coating()
+    test_instrument()
