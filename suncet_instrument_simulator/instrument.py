@@ -3,7 +3,7 @@ import numpy as np
 from pandas import read_fwf
 import astropy.units as u
 
-class Instrument: 
+class Hardware: 
 
     def __init__(self, config):
         self.config = config
@@ -49,5 +49,11 @@ class Instrument:
     def extract_fov(self):
         pass # TODO implement extract FOV
 
+
+class Software:
+    def __init__(self, config):
+        self.config = config
+
+
 if __name__ == "__main__":
-    print("See test_mirror_coating.py for example of how to configure to run this code.")
+    print("See test_instrument.py for example of how to configure to run this code.")
