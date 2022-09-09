@@ -1,7 +1,12 @@
 import os
+from glob import glob
 import numpy as np
 from pandas import read_fwf
 import astropy.units as u
+from astropy.io import fits
+import sunpy.map
+from suncet_instrument_simulator import config_parser # This is just for running as a script -- should delete when done testing
+from scipy.io import readsav # TODO: remove this temporary hack once we have radiance map files in non-IDL-saveset format
 
 class Hardware: 
 
@@ -16,24 +21,26 @@ class Hardware:
         return os.path.basename(self.config.mirror_coating_reflectivity_filename).split('_1')[0] 
 
 
-    def __get_target_wavelengths(self): 
-        if self.__radiance_maps_exist():
-            headers = self.__load_radiance_map_headers()
-            return self.__extract_wavelengths_from_headers()
-        else: 
-            return np.array([171, 175, 177, 180, 185, 188, 194, 195, 202, 204, 211])*u.Angstrom
+    def __get_target_wavelengths(self):
+        expected_filenames = os.getenv('suncet_data') + 'mhd/dimmest/rendered_euv_maps/euv_sim_300*.fits'
+        radiance_maps_filenames = glob(expected_filenames)
+        if len(radiance_maps_filenames) > 0: 
+            return self.__extract_wavelengths_from_maps(radiance_maps_filenames)
+        else:
+            raise ValueError('Radiance maps not found. Make sure that your radiance maps are saved as {}'.format(expected_filenames))
 
 
-    def __radiance_maps_exist(self):
-        pass  # TODO implement radiance_maps_exist
-
-
-    def __load_radiance_map_headers(self):
-        pass  # TODO implement load_radiance_map_headers
-
-
-    def __extract_wavelengths_from_headers(self):
-        pass  # TODO implement extract_wavelengths_from_headers
+    def __extract_wavelengths_from_maps(self, filenames):
+        wavelengths = []
+        wavelength_unit = []
+        for filename in filenames:
+            map = sunpy.map.Map(filename)
+            wavelengths.append(map.wavelength.value)
+            if len(wavelength_unit) > 0: 
+                if map.wavelength.unit != wavelength_unit[0]:
+                    raise ValueError('The wavelengths in the radiance maps do not match each other. This is dangerous so please fix it.')
+            wavelength_unit.append(map.wavelength.unit)
+        return wavelengths * wavelength_unit[0]
 
 
     def interpolate_mirror_coating_reflectivity(self):
@@ -56,4 +63,7 @@ class OnboardSoftware:
 
 
 if __name__ == "__main__":
+    config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
+    config = config_parser.Config(config_filename)
+    hardware = Hardware(config)
     print("See test_instrument.py for example of how to configure to run this code.")

@@ -3,10 +3,12 @@ import urllib.request
 import ssl
 import numpy as np
 import astropy.units as u
+from urllib.parse import urlparse
 from suncet_instrument_simulator import config_parser, instrument
 
-tmp_filename = 'B4C_Mo_Al_1-11000A.txt'
-
+tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.txt?dl=1", 
+                 "https://www.dropbox.com/s/f51fep2nu1vr7ai/euv_sim_300_171A.fits?dl=1", 
+                 "https://www.dropbox.com/s/5tkfvphczs0a929/euv_sim_300_193A.fits?dl=1"] # dl=1 is important
 
 def test_instrument():
     hardware = setup_instrument_hardware()
@@ -15,7 +17,7 @@ def test_instrument():
 
 
 def setup_instrument_hardware():
-    download_mirror_coating_data_file()
+    download_test_data()
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = config_parser.Config(config_filename)
     hardware = instrument.Hardware(config)
@@ -23,13 +25,21 @@ def setup_instrument_hardware():
     return hardware
 
 
-def download_mirror_coating_data_file():
+def download_test_data():
     ssl._create_default_https_context = ssl._create_unverified_context
-    url = urllib.request.urlopen("https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.txt?dl=1")  # dl=1 is important
-    data = url.read()
-    url.close()
-    with open(tmp_filename, "wb") as f:
-        f.write(data)
+
+    for url in tmp_file_urls:
+        thisurl = urllib.request.urlopen(url)  
+        data = thisurl.read()
+        thisurl.close()
+        filename = get_filename_from_url(url)
+        with open(filename, "wb") as f:
+            f.write(data)
+
+
+def get_filename_from_url(url):
+    parsed_url = urlparse(url)
+    return os.path.basename(parsed_url.path)
 
 
 def run_mirror_coating_tests(hardware):
@@ -39,7 +49,9 @@ def run_mirror_coating_tests(hardware):
 
 
 def delete_tmp_file():
-    os.remove(tmp_filename)
+    for url in tmp_file_urls:
+        filename = get_filename_from_url(url)
+        os.remove(filename)
 
 
 if __name__ == "__main__":
