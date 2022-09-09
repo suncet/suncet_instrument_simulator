@@ -50,7 +50,7 @@ class Hardware:
         pass # TODO implement extract FOV
 
 
-class Software:
+class OnboardSoftware:
     def __init__(self, config):
         self.config = config
 

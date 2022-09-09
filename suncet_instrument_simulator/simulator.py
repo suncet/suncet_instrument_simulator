@@ -9,7 +9,7 @@ class Simulator:
         self.config = self.__load_config(config_filename)
         self.radiance_maps = 'not yet loaded'
         self.hardware = 'not yet loaded'
-        self.software_onboard = 'not yet loaded'
+        self.onboard_software = 'not yet loaded'
 
     def __load_config(self, config_filename):   
         self.config = config_parser.Config(config_filename)
@@ -17,7 +17,7 @@ class Simulator:
 
     def run(self):
         self.hardware = instrument.Hardware(self.config)
-        self.software_onboard = instrument.Software(self.config)
+        self.onboard_software = instrument.OnboardSoftware(self.config)
         self.__sun_to_detector()
         self.__simulate_noise()
         self.__simulate_detector()
