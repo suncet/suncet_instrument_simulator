@@ -27,7 +27,8 @@ def setup_environment():
         path.mkdir(parents=True, exist_ok=True)
         for url in tmp_file_urls: 
             filename = url.rsplit('/', 1)[-1].rsplit('?', 1)[0]
-            Path('./' + filename).rename(path / filename)
+            if filename.startswith('euv_sim_'): 
+                Path('./' + filename).rename(path / filename)
 
 
 def setup_instrument_hardware():
