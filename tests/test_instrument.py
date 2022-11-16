@@ -26,7 +26,7 @@ def setup_environment():
         path = Path('./mhd/dimmest/rendered_euv_maps')
         path.mkdir(parents=True, exist_ok=True)
         for url in tmp_file_urls: 
-            filename = url.rsplit('/', 1)[-1].rsplit('?', 1)[0]
+            filename = get_filename_from_url(url)
             if filename.startswith('euv_sim_'): 
                 Path('./' + filename).rename(path / filename)
 
@@ -65,6 +65,8 @@ def run_mirror_coating_tests(hardware):
 def delete_tmp_file():
     for url in tmp_file_urls:
         filename = get_filename_from_url(url)
+        if filename.startswith('euv_sim_'): 
+            filename = './mhd/dimmest/rendered_euv_maps/' + filename
         os.remove(filename)
 
 
