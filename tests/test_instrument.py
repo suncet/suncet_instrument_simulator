@@ -14,15 +14,10 @@ tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.t
 def test_instrument():
     if os.getenv('suncet_data') == None: 
         download_test_data()
-        cloud_testing = True
-    else: 
-        cloud_testing = False
     
     hardware = setup_instrument_hardware()
     run_mirror_coating_tests(hardware)
-    if cloud_testing: 
-        delete_tmp_file()    
-
+  
 
 def setup_instrument_hardware():
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
@@ -63,14 +58,6 @@ def run_mirror_coating_tests(hardware):
     assert hardware.coating_name == 'B4C_Mo_Al'
     assert hardware.wavelengths.unit == u.Angstrom
     assert isinstance(hardware.reflectivity, np.ndarray)
-
-
-def delete_tmp_file():
-    for url in tmp_file_urls:
-        filename = get_filename_from_url(url)
-        if filename.startswith('euv_sim_'): 
-            filename = './mhd/dimmest/rendered_euv_maps/' + filename
-        os.remove(filename)
 
 
 if __name__ == "__main__":
