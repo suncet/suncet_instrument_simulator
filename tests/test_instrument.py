@@ -47,9 +47,9 @@ def download_test_data():
         thisurl.close()
         filename = get_filename_from_url(url)
         if filename.startswith('euv_sim_'):
-            Path('./' + filename).rename(map_path / filename)
+            filename = map_path / filename
         elif filename.endswith('A.txt'):
-            Path('./' + filename).rename(reflectivity_path / filename)
+            filename = reflectivity_path / filename
         with open(filename, "wb") as f:
             f.write(data)
     
