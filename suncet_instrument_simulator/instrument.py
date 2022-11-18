@@ -4,6 +4,7 @@ import numpy as np
 from pandas import read_fwf
 import astropy.units as u
 from astropy.io import fits
+from astropy.coordinates import SkyCoord
 import sunpy.map
 from suncet_instrument_simulator import config_parser # This is just for running as a script -- should delete when done testing
 from scipy.io import readsav # TODO: remove this temporary hack once we have radiance map files in non-IDL-saveset format
@@ -53,9 +54,15 @@ class Hardware:
         return read_fwf(os.getenv('suncet_data') + '/mirror_reflectivity/' + filename, skiprows=18, header=0, names=['wavelength', 'reflectivity']) # wavelength should be in Angstroms, reflectivity as a fraction
 
 
-    def extract_fov(self):
-        
-        pass # TODO: implement extract FOV
+    def extract_fov(self, radiance_maps):
+        fov_half_angles = self.config.fov / 2.0
+
+        # TODO: Raise warning if instrument FOV > model FOV
+
+        return sunpy.map.MapSequence([map.submap(top_right=SkyCoord(fov_half_angles[0], fov_half_angles[1], frame=map.coordinate_frame), 
+                                                 bottom_left=SkyCoord(-fov_half_angles[0], -fov_half_angles[1], frame=map.coordinate_frame)) 
+                                      for map in radiance_maps])
+
 
 
 class OnboardSoftware:

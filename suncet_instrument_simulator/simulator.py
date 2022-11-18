@@ -2,6 +2,8 @@
 This is the main wrapper for most/all(?) of the other instrument simulator related python files
 """
 import os
+from glob import glob
+import sunpy.map
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
 
 class Simulator:
@@ -32,11 +34,13 @@ class Simulator:
         self.__load_radiance_maps()
 
         self.hardware.interpolate_mirror_coating_reflectivity()
-        self.hardware.extract_fov()
+        self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
+        pass
 
     
     def __load_radiance_maps(self):
-        pass  # TODO: implement load_radiance_maps
+        filenames = glob(os.getenv('suncet_data') + 'mhd/dimmest/rendered_euv_maps/euv_sim_300*.fits')
+        self.radiance_maps = sunpy.map.Map(filenames, sequence=True)
 
 
     def __simulate_noise(self):
