@@ -6,13 +6,13 @@ from suncet_instrument_simulator import config_parser, make_radiance_maps, instr
 
 class Simulator:
     def __init__(self, config_filename=os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'):
-        self.config = self.__load_config(config_filename)
+        self.config = self.__read_config(config_filename)
         self.radiance_maps = 'not yet loaded'
         self.hardware = 'not yet loaded'
         self.onboard_software = 'not yet loaded'
 
-    def __load_config(self, config_filename):   
-        self.config = config_parser.Config(config_filename)
+    def __read_config(self, config_filename):   
+        return config_parser.Config(config_filename)
 
 
     def run(self):
@@ -36,19 +36,19 @@ class Simulator:
 
     
     def __load_radiance_maps(self):
-        pass  # TODO implement load_radiance_maps
+        pass  # TODO: implement load_radiance_maps
 
 
     def __simulate_noise(self):
-        pass # TODO implement simulate_noise
+        pass # TODO: implement simulate_noise
     
 
     def __simulate_detector(self):
-        pass # TODO implement simulate_detector
+        pass # TODO: implement simulate_detector
 
 
     def __apply_camera_software(self):
-        pass # TODO implement apply_camera_software
+        pass # TODO: implement apply_camera_software
 
 
     def __calculate_snr(self):

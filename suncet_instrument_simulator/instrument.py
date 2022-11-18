@@ -50,11 +50,12 @@ class Hardware:
    
 
     def __load_mirror_data(self, filename):
-        return read_fwf(os.getcwd() + '/' + filename, skiprows=18, header=0, names=['wavelength', 'reflectivity']) # wavelength should be in Angstroms, reflectivity as a fraction
+        return read_fwf(os.getenv('suncet_data') + '/mirror_reflectivity/' + filename, skiprows=18, header=0, names=['wavelength', 'reflectivity']) # wavelength should be in Angstroms, reflectivity as a fraction
 
 
     def extract_fov(self):
-        pass # TODO implement extract FOV
+        
+        pass # TODO: implement extract FOV
 
 
 class OnboardSoftware:

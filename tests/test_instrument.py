@@ -12,23 +12,16 @@ tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.t
                  "https://www.dropbox.com/s/5tkfvphczs0a929/euv_sim_300_193A.fits?dl=1"] # dl=1 is important
 
 def test_instrument():
-    setup_environment()
+    if os.getenv('suncet_data') == None: 
+        download_test_data()
+        cloud_testing = True
+    else: 
+        cloud_testing = False
+    
     hardware = setup_instrument_hardware()
     run_mirror_coating_tests(hardware)
-    delete_tmp_file()
-
-
-def setup_environment(): 
-    download_test_data()
-    
-    if os.getenv('suncet_data') == None: 
-        os.environ['suncet_data'] = './'
-        path = Path('./mhd/dimmest/rendered_euv_maps')
-        path.mkdir(parents=True, exist_ok=True)
-        for url in tmp_file_urls: 
-            filename = get_filename_from_url(url)
-            if filename.startswith('euv_sim_'): 
-                Path('./' + filename).rename(path / filename)
+    if cloud_testing: 
+        delete_tmp_file()    
 
 
 def setup_instrument_hardware():
@@ -40,6 +33,12 @@ def setup_instrument_hardware():
 
 
 def download_test_data():
+    os.environ['suncet_data'] = './'
+    map_path = Path('./mhd/dimmest/rendered_euv_maps')
+    map_path.mkdir(parents=True, exist_ok=True)
+    reflectivity_path = Path('./mirror_reflectivity')
+    reflectivity_path.mkdir(parents=True, exist_ok=True)
+
     ssl._create_default_https_context = ssl._create_unverified_context
 
     for url in tmp_file_urls:
@@ -47,9 +46,13 @@ def download_test_data():
         data = thisurl.read()
         thisurl.close()
         filename = get_filename_from_url(url)
+        if filename.startswith('euv_sim_'):
+            Path('./' + filename).rename(map_path / filename)
+        elif filename.endswith('A.txt'):
+            Path('./' + filename).rename(reflectivity_path / filename)
         with open(filename, "wb") as f:
             f.write(data)
-
+    
 
 def get_filename_from_url(url):
     parsed_url = urlparse(url)
