@@ -57,7 +57,7 @@ def get_filename_from_url(url):
 def run_mirror_coating_tests(hardware):
     assert hardware.coating_name == 'B4C_Mo_Al'
     assert hardware.wavelengths.unit == u.Angstrom
-    assert isinstance(hardware.reflectivity, np.ndarray)
+    assert hardware.effective_area.unit == u.cm**2
 
 
 if __name__ == "__main__":
