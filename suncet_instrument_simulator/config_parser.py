@@ -22,7 +22,8 @@ class Config:
         self.secondary_mirror_obscuration_fraction = config['telescope'].getfloat('secondary_mirror_obscuration') 
         self.fov = json.loads(config.get('telescope', 'fov')) * u.deg
         self.mirror_coating_reflectivity_filename = config['telescope']['mirror_coating_reflectivity_filename']
-        self.filter_transmission_filename = config['telescope']['filter_transmission_filename']
+        self.filter_entrance_transmission_filename = config['telescope']['filter_entrance_transmission_filename']
+        self.filter_focal_plane_transmission_filename = config['telescope']['filter_focal_plane_transmission_filename']
 
         # detector
         self.detector_physical_area = config['detector']['detector_physical_area']
