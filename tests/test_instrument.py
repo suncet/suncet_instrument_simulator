@@ -9,7 +9,9 @@ from suncet_instrument_simulator import config_parser, instrument
 
 tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.txt?dl=1", 
                  "https://www.dropbox.com/s/f51fep2nu1vr7ai/euv_sim_300_171A.fits?dl=1", 
-                 "https://www.dropbox.com/s/5tkfvphczs0a929/euv_sim_300_193A.fits?dl=1"] # dl=1 is important
+                 "https://www.dropbox.com/s/5tkfvphczs0a929/euv_sim_300_193A.fits?dl=1",
+                 "https://www.dropbox.com/s/z86h2h7l8pgbhnl/filter_entrance_transmission.csv?dl=1",
+                 "https://www.dropbox.com/s/muclu9kncl7xyff/filter_focal_plane_transmission.csv?dl=1"] # dl=1 is important
 
 def test_instrument():
     if os.getenv('suncet_data') == None: 
@@ -33,6 +35,8 @@ def download_test_data():
     map_path.mkdir(parents=True, exist_ok=True)
     reflectivity_path = Path('./mirror_reflectivity')
     reflectivity_path.mkdir(parents=True, exist_ok=True)
+    filter_path = Path('./filter_transmission')
+    filter_path.mkdir(parents=True, exist_ok=True)
 
     ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -45,6 +49,8 @@ def download_test_data():
             filename = map_path / filename
         elif filename.endswith('A.txt'):
             filename = reflectivity_path / filename
+        elif filename.startswith('filter_'):
+            filename = filter_path / filename
         with open(filename, "wb") as f:
             f.write(data)
     
