@@ -7,3 +7,4 @@ scipy==1.8.1
 astropy==5.1
 sunpy==4.0
 seaborn==0.11
+xarray==2023.2.0
