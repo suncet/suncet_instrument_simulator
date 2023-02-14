@@ -33,7 +33,7 @@ class Simulator:
             make_radiance_maps()
         self.__load_radiance_maps()
 
-        self.hardware.interpolate_mirror_coating_reflectivity()
+        self.hardware.compute_effective_area()
         self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
         pass
 
@@ -66,3 +66,5 @@ class Simulator:
 if __name__ == "__main__":
     simulator = Simulator()
     simulator.run()
+
+    # simulator.clean() maybe
