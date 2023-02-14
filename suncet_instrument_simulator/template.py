@@ -1,3 +1,4 @@
+import os
 from suncet_instrument_simulator import config_parser
 
 class GoSunCET: 
