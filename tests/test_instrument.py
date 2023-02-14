@@ -23,7 +23,7 @@ def setup_instrument_hardware():
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = config_parser.Config(config_filename)
     hardware = instrument.Hardware(config)
-    hardware.interpolate_mirror_coating_reflectivity()
+    hardware.compute_effective_area()
     return hardware
 
 
