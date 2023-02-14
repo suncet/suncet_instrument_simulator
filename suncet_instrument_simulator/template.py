@@ -10,5 +10,5 @@ if __name__ == "__main__":
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = config_parser.Config(config_filename)
     hardware = GoSunCET(config)
-    print("See test_instrument.py for example of how to configure to run this code.")
+    print("SunCET is cool.")
     
