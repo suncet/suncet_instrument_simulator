@@ -16,6 +16,10 @@ class Config:
         self.apply_psf = config['behavior'].getboolean('apply_psf')
         self.apply_scattered_light_psf = config['behavior'].getboolean('apply_scattered_light_psf')
 
+        # limits
+        self.wavelength_limits = json.loads(config.get('limits', 'wavelength_limits')) * u.Angstrom
+        self.wavelength_bin = config['limits'].getfloat('wavelength_bin') * u.Angstrom
+
         # telescope
         self.entrance_aperture = config['telescope'].getfloat('entrance_aperture') * u.cm
         self.primary_mirror_truncation = config['telescope'].getfloat('primary_mirror_truncation') * u.cm**2
