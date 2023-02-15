@@ -100,7 +100,7 @@ class MakeRadianceMaps:
         header['PC2_1'] = 0.0
         header['PC2_2'] = 1.0
         header['WAVELNTH'] = 170.0
-        header['BUNIT'] = 'photon/(cm2 s sr Å)'
+        header['BUNIT'] = 'photon/(cm2 s sr Angstrom)'
         header['WCSNAME'] = 'Helioprojective-cartesian'
         header['HGLT_OBS'] = 0.0
         header['HGLN_OBS'] = 0.0
@@ -126,6 +126,9 @@ class MakeRadianceMaps:
             else:
                 map_seq.maps.append(map_out)
         return map_seq
+
+    def __save_map_sequence(self):
+        self.map_seq.save('suncet_radiance_map_{index:03}.fits')
 
 if __name__ == "__main__":
     radiance_map = MakeRadianceMaps()
