@@ -8,8 +8,11 @@ class Config:
 
     def __init__(self, filename):
         config = configparser.ConfigParser()
-        print('Reading configuration file: {}/{}'.format(os.getcwd(), filename))
-        config.read(filename)
+        print('Reading configuration file: {}'.format(filename))
+        if os.path.isfile(filename): 
+            config.read(filename)
+        else: 
+            raise Exception('Config file does not exist or path is incorrect.')
 
         # behavior
         self.compute_new_radiance_maps = config['behavior'].getboolean('compute_new_radiance_maps')
