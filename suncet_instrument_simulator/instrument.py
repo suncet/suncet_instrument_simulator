@@ -85,7 +85,18 @@ class Hardware:
         return sunpy.map.MapSequence([map.submap(top_right=SkyCoord(fov_half_angles[0], fov_half_angles[1], frame=map.coordinate_frame), 
                                                  bottom_left=SkyCoord(-fov_half_angles[0], -fov_half_angles[1], frame=map.coordinate_frame)) 
                                       for map in radiance_maps])
+    
 
+    def interpolate_spatial_resolution(self, radiance_maps):
+        map_list = []
+        for map in radiance_maps: 
+            map_list.append(map.resample(self.config.image_dimensions, method='spline')) # TODO: Figure out why the CDELTs in map.fits_header['CDELT1'] don't update with the resample
+        return sunpy.map.MapSequence(map_list)
+
+
+    
+    def __copmute_plate_scale(): 
+        pass
 
 
 class OnboardSoftware:
