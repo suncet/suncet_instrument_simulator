@@ -13,7 +13,7 @@ class MakeRadianceMaps:
         self.config = self.__read_config(config_filename)
 
 
-    def run(self, save = False):
+    def run(self, save=False):
         self.emiss = self.__get_emissivity()
         self.em_map = self.__read_em_map()
         self.logt_axis, self.native_wave_axis, self.wave_axis = self.__parameter_setup()
@@ -108,7 +108,7 @@ class MakeRadianceMaps:
         header['PC1_2'] = 0.0
         header['PC2_1'] = 0.0
         header['PC2_2'] = 1.0
-        header['WAVELNTH'] = 170.0
+        header['WAVELNTH'] = 170.0 # NOTE: FITS doesn't have a keyword to store the units for wavelength, it's usually listed in the header comment instead
         header['BUNIT'] = 'photon/(cm2 s sr Angstrom)'
         header['WCSNAME'] = 'Helioprojective-cartesian'
         header['HGLT_OBS'] = 0.0
@@ -128,7 +128,7 @@ class MakeRadianceMaps:
         # compile maps into a Map Sequence
         for n in range(map_dims[0]):
             header = header_template
-            header['WAVELNTH'] = self.wave_axis[n]
+            header['WAVELNTH'] = self.wave_axis[n].value
             map_out = sunpy.map.Map(self.raw_radiance[n, :, :], header)
             if n == 0:
                 map_seq = sunpy.map.MapSequence(map_out)
