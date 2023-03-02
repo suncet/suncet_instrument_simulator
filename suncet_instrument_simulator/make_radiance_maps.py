@@ -109,7 +109,7 @@ class MakeRadianceMaps:
         header['PC2_1'] = 0.0
         header['PC2_2'] = 1.0
         header['WAVELNTH'] = 170.0 # NOTE: FITS doesn't have a keyword to store the units for wavelength, it's usually listed in the header comment instead
-        header['BUNIT'] = 'photon/(cm2 s sr Angstrom)'
+        header['BUNIT'] = 'photon/(cm2 s sr Angstrom)' # TODO: Dan: Consider forcing in a wavelength unit as well, and then reading that value in load_maps
         header['WCSNAME'] = 'Helioprojective-cartesian'
         header['HGLT_OBS'] = 0.0
         header['HGLN_OBS'] = 0.0
