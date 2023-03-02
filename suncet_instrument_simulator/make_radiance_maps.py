@@ -8,11 +8,10 @@ from glob import glob
 import sunpy.map
 from astropy.io import fits
 
-
 class MakeRadianceMaps:
-
     def __init__(self, config_filename=os.getcwd() + '/config_files/config_default.ini'):
         self.config = self.__read_config(config_filename)
+
 
     def run(self, save = False):
         self.emiss = self.__get_emissivity()
@@ -24,8 +23,10 @@ class MakeRadianceMaps:
             self.__save_map_sequence()
         return self.map_seq
 
+
     def __read_config(self, config_filename):
         return config_parser.Config(config_filename)
+
 
     def __get_emissivity(self):
         expected_filename = os.getenv('suncet_data') + '/ancillary/emissivity/aia_V9_fullemiss.nc'
@@ -35,18 +36,20 @@ class MakeRadianceMaps:
         else:
             raise ValueError('Emissivity file not found. Make sure that your emissivity file is saved as {}'.format(expected_filenames))
 
+
     def __read_em_map(self):
         # TODO: Make this work on more than one file
         expected_em_filenames = os.getenv('suncet_data') + '/mhd/bright_fast/em_maps/em_map_240.sav'
         em_maps_filenames = glob(expected_em_filenames)
         if len(em_maps_filenames) > 0:
             em_data = scipy.io.readsav(em_maps_filenames[0])
-            return em_data.em_maps_plus * 10**26. # # EM Maps have units of 10**26 cm^-5
+            return em_data.em_maps_plus * 10**26. # EM Maps have units of 10**26 cm^-5
         else:
             raise ValueError('EM maps not found. Make sure that your radiance maps are saved as {}'.format(expected_filenames))
 
+
     def __parameter_setup(self):
-        # setup
+        wavelength_units = self.config.wavelength_limits.unit
         limits = self.config.wavelength_limits.value
         self.binsize = self.config.wavelength_bin.value
         self.native_binsize = np.round(np.median(self.emiss.wave.values[1:] - self.emiss.wave.values[0:-1]), 1)
@@ -58,10 +61,10 @@ class MakeRadianceMaps:
 
         # LogT Axis, Native Wavelength Axis for Emissivity, Desired Wavelength Axis for Radiances
         return np.arange(lgTmin, lgTmin + ((nlgT - 1) * dlgT), dlgT), \
-            np.arange(limits[0], limits[1], self.native_binsize), np.arange(limits[0], limits[1], self.binsize)
+               np.arange(limits[0], limits[1], self.native_binsize) * wavelength_units, np.arange(limits[0], limits[1], self.binsize) * wavelength_units
+
 
     def __compute_radiance(self):
-
         # setup necessary variables
         em_map_dim = np.shape(self.em_map)
         native_wave_dims = np.shape(self.native_wave_axis)[0]
@@ -84,6 +87,7 @@ class MakeRadianceMaps:
             emiss_wave_array[n, :, :] = np.sum(emiss_wave_array_full[int(n * bin_ratio):int(n * bin_ratio + (bin_ratio - 1)), :, :]
                                                * self.native_binsize, axis=0)
         return emiss_wave_array
+
 
     def __make_header_template(self):
         header = {}
@@ -114,13 +118,13 @@ class MakeRadianceMaps:
         header['INSTRUME'] = 'SunCET'
         header['EXPTIME'] = 1.0
         return header
-    def __construct_maps(self):
+    
 
-        # setup
+    def __construct_maps(self):
         header_template = self.__make_header_template()
         map_dims = np.shape(self.raw_radiance)
 
-        # for each wavelenght bin, make a header, and turn the data/header into a map
+        # for each wavelength bin, make a header, and turn the data/header into a map
         # compile maps into a Map Sequence
         for n in range(map_dims[0]):
             header = header_template
@@ -132,6 +136,7 @@ class MakeRadianceMaps:
                 map_seq.maps.append(map_out)
         return map_seq
 
+
     def __save_map_sequence(self):
         for n, map in enumerate(self.map_seq):
             if n == 0:
@@ -142,6 +147,7 @@ class MakeRadianceMaps:
                 hdul.append(hdu)
         # TODO: Make this work on more than one file
         hdul.writeto('SunCET_MapSeq.fits')
+
 
 if __name__ == "__main__":
     radiance_map = MakeRadianceMaps()

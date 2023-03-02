@@ -10,39 +10,26 @@ from suncet_instrument_simulator import config_parser # This is just for running
 from scipy.io import readsav # TODO: remove this temporary hack once we have radiance map files in non-IDL-saveset format
 
 class Hardware: 
-
     def __init__(self, config):
         self.config = config
-
         self.coating_name = self.__get_coating_name()
-        self.wavelengths = self.__get_target_wavelengths()
 
 
     def __get_coating_name(self):
         return os.path.basename(self.config.mirror_coating_reflectivity_filename).split('_1')[0] 
 
 
-    def __get_target_wavelengths(self):
-        expected_filenames = os.getenv('suncet_data') + 'mhd/dimmest/rendered_euv_maps/euv_sim_300*.fits'
-        radiance_maps_filenames = glob(expected_filenames)
-        if len(radiance_maps_filenames) > 0: 
-            return self.__extract_wavelengths_from_maps(radiance_maps_filenames)
-        else:
-            raise ValueError('Radiance maps not found. Make sure that your radiance maps are saved as {}'.format(expected_filenames))
-
-
-    def __extract_wavelengths_from_maps(self, filenames):
+    def store_target_wavelengths(self, radiance_maps): # Will interpolate/calculate any subsequent wavelength-dependent quantities to this "target" wavelength array
         wavelengths = []
         wavelength_unit = []
-        for filename in filenames:
-            map = sunpy.map.Map(filename)
+        for map in radiance_maps:
             wavelengths.append(map.wavelength.value)
             if len(wavelength_unit) > 0: 
                 if map.wavelength.unit != wavelength_unit[0]:
                     raise ValueError('The wavelengths in the radiance maps do not match each other. This is dangerous so please fix it.')
             wavelength_unit.append(map.wavelength.unit)
-        return wavelengths * wavelength_unit[0]
-    
+        self.wavelengths = wavelengths * wavelength_unit[0]
+
 
     def compute_effective_area(self):
         geometric_area = np.pi * ((self.config.entrance_aperture)/2)**2

@@ -33,6 +33,7 @@ class Simulator:
             self.radiance_maps = make_radiance_maps.MakeRadianceMaps(os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini').run()
         else: 
             self.__load_radiance_maps()
+        self.hardware.store_target_wavelengths(self.radiance_maps)
 
         self.hardware.compute_effective_area()
         self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
