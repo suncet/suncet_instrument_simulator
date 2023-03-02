@@ -34,7 +34,7 @@ class MakeRadianceMaps:
         if len(emissivity_filename) > 0:
             return xr.load_dataset(emissivity_filename[0])
         else:
-            raise ValueError('Emissivity file not found. Make sure that your emissivity file is saved as {}'.format(expected_filenames))
+            raise ValueError('Emissivity file not found. Make sure that your emissivity file is saved as {}'.format(expected_filename))
 
 
     def __read_em_map(self):
@@ -45,7 +45,7 @@ class MakeRadianceMaps:
             em_data = scipy.io.readsav(em_maps_filenames[0])
             return em_data.em_maps_plus * 10**26. # EM Maps have units of 10**26 cm^-5
         else:
-            raise ValueError('EM maps not found. Make sure that your radiance maps are saved as {}'.format(expected_filenames))
+            raise ValueError('EM maps not found. Make sure that your EM maps are saved as {}'.format(expected_em_filenames))
 
 
     def __parameter_setup(self):
