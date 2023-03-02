@@ -128,7 +128,7 @@ class MakeRadianceMaps:
         # compile maps into a Map Sequence
         for n in range(map_dims[0]):
             header = header_template
-            header['WAVELNTH'] = self.wave_axis[n].value
+            header['WAVELNTH'] = self.wave_axis[n] # TODO: Dan: Figure out how to get the units in here so that it doesn't crash when saving to disk (related to above TODO)
             map_out = sunpy.map.Map(self.raw_radiance[n, :, :], header)
             if n == 0:
                 map_seq = sunpy.map.MapSequence(map_out)
