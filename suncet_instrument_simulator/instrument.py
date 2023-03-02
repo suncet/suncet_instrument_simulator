@@ -81,15 +81,81 @@ class Hardware:
         return sunpy.map.MapSequence(map_list)
 
 
-    
     def __copmute_plate_scale(): 
-        pass
+        pass # TODO: is this needed? Even if not, would it be useful to include some computed quantities as instance variables just for reference?
+
+
+    def apply_psf(self, radiance_maps):
+        pass # TODO: implement apply_psf
+
+
+    def apply_scattered_light_psf(self, radiance_maps):
+        pass # TODO: implement apply_scattered_light_psf
+
+    
+    def apply_effective_area(self, radiance_maps):
+        pass # TODO: implement apply_effective_area
+
+    
+    def apply_exposure_times(self, radiance_maps):
+        pass # TODO: implement apply_exposure_times
+    
+
+    def apply_photon_shot_noise(self, radiance_maps):
+        pass # TODO: implement apply_photon_shot_noise (2 element return: new_radiance_maps, noise_only)
+
+    
+    def convert_to_electrons(self, radiance_maps, photon_shot_noise):
+        pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only)
+
+    
+    def make_dark_frame(self):
+        pass # TODO: implement make_dark_frame
+
+
+    def make_read_frame(self):
+        pass # TODO: implement make_read_frame
+
+    
+    def make_spike_frame(self):
+        pass # TODO: implement make_spike_frame
+    
+
+    def combine_signal_and_noise(self, detector_images, pure_signal, noise_only):
+        pass # TODO: implement combine_signal_and_noise
+
+    
+    def convert_to_dn(self, detector_images):
+        pass # TODO: implement convert_to_dn
+
+    
+    def apply_screwy_pixels(self, detector_images, spike_frame):
+        pass # TODO: implement apply_screwy_pixels (spikes, dead pixels, hot pixels; ensure that none of these are above the full well)
 
 
 class OnboardSoftware:
     def __init__(self, config):
         self.config = config
+    
 
+    def subtract_dark(self, detector_images, dark_frame):
+        pass # TOOD: implement subtract_dark
+
+    
+    def separate_images(self, onboard_processed_images):
+        pass # TODO: implement separate_images
+
+
+    def apply_jitter(self, split_images): # Note really onboard software, but this is the place in the logic it belongs
+        pass # TODO: implement apply_jitter (will be different for the short exposure central disk and long exposure off-disk)
+
+    
+    def median_image_stack(self, split_images):
+        pass # TODO: impelement median_image_stack (returns a composite images merging the on- and off-disk, and spanning time up to the duration corresponding to how many images to stack (e.g., four 15-second exposures stacked for median will result in a 1-minute composite))
+    
+    
+    def bin_image(self, onboard_processed_images):
+        pass # TODO: implement bin_image
 
 if __name__ == "__main__":
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'

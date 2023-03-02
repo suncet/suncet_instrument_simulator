@@ -38,7 +38,13 @@ class Simulator:
         self.hardware.compute_effective_area()
         self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
         self.radiance_maps = self.hardware.interpolate_spatial_resolution(self.radiance_maps)
-        pass
+        if self.config.apply_psf: 
+            self.radiance_maps = self.hardware.apply_psf(self.radiance_maps)
+        if self.config.apply_scattered_light_psf:
+            self.radiance_maps = self.hardware.apply_scattered_light_psf(self.radiance_maps)
+        self.radiance_maps = self.hardware.apply_effective_area(self.radiance_maps)
+        self.radiance_maps = self.hardware.apply_exposure_times(self.radiance_maps)
+        self.pure_signal = self.radiance_maps
 
     
     def __load_radiance_maps(self):
@@ -47,15 +53,33 @@ class Simulator:
 
 
     def __simulate_noise(self):
-        pass # TODO: implement simulate_noise
+        self.radiance_maps, self.noise_only = self.hardware.apply_photon_shot_noise(self.radiance_maps)
+        self.detector_images, self.noise_only = self.hardware.convert_to_electrons(self.radiance_maps, self.noise_only)
+        self.dark_frame = self.hardware.make_dark_frame()
+        self.read_frame = self.hardware.make_read_frame()
+        self.spike_frame = self.hardware.make_spike_frame()
+
+        self.__combine_noise_sources()
+
+    def __combine_noise_sources(self):
+        pass # implement combine_noise_sources (self.noise_only, self.dark_frame, self.read_frame, and self.spike_frame)
     
 
     def __simulate_detector(self):
-        pass # TODO: implement simulate_detector
+        self.detector_images = self.hardware.combine_signal_and_noise(self.detector_images, self.pure_signal, self.noise_only)
+        self.detector_images = self.hardware.convert_to_dn(self.detector_images)
+        self.detector_images = self.hardware.apply_screwy_pixels(self.detector_images, self.spike_frame)    
 
 
     def __apply_camera_software(self):
-        pass # TODO: implement apply_camera_software
+        if self.config.subtract_dark:
+            self.onboard_processed_images = self.onboard_software.subtract_dark(self.detector_images, self.dark_frame)
+        else: 
+            self.onboard_processed_images = self.detector_images
+        self.split_images = self.onboard_software.separate_images(self.onboard_processed_images)
+        self.split_images = self.onboard_software.apply_jitter(self.split_images)
+        self.onboard_processed_images = self.onboard_software.median_image_stack(self.split_images)
+        self.onboard_processed_images - self.onboard_software.bin_image(self.onboard_processed_images)
 
 
     def __calculate_snr(self):

@@ -18,6 +18,7 @@ class Config:
         self.compute_new_radiance_maps = config['behavior'].getboolean('compute_new_radiance_maps')
         self.apply_psf = config['behavior'].getboolean('apply_psf')
         self.apply_scattered_light_psf = config['behavior'].getboolean('apply_scattered_light_psf')
+        self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
 
         # limits
         self.wavelength_limits = json.loads(config.get('limits', 'wavelength_limits')) * u.Angstrom
