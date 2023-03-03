@@ -5,6 +5,7 @@ from pandas import read_fwf, read_csv
 import astropy.units as u
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
+from astropy import constants as const
 import sunpy.map
 from suncet_instrument_simulator import config_parser # This is just for running as a script -- should delete when done testing
 from scipy.io import readsav # TODO: remove this temporary hack once we have radiance map files in non-IDL-saveset format
@@ -81,33 +82,63 @@ class Hardware:
         return sunpy.map.MapSequence(map_list)
 
 
-    def __copmute_plate_scale(): 
+    def __compute_plate_scale(): 
         pass # TODO: is this needed? Even if not, would it be useful to include some computed quantities as instance variables just for reference?
 
 
     def apply_psf(self, radiance_maps):
+        return radiance_maps
         pass # TODO: implement apply_psf
 
 
     def apply_scattered_light_psf(self, radiance_maps):
+        return radiance_maps
         pass # TODO: implement apply_scattered_light_psf
 
     
     def apply_effective_area(self, radiance_maps):
+        return radiance_maps
         pass # TODO: implement apply_effective_area
 
     
     def apply_exposure_times(self, radiance_maps):
+        return radiance_maps
         pass # TODO: implement apply_exposure_times
     
 
     def apply_photon_shot_noise(self, radiance_maps):
+        return radiance_maps, None
         pass # TODO: implement apply_photon_shot_noise (2 element return: new_radiance_maps, noise_only)
 
     
     def convert_to_electrons(self, radiance_maps, photon_shot_noise):
-        pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only)
+        quantum_efficiency = self.__interpolate_quantum_efficiency()
+        quantum_yield = self.__compute_quantum_yields()
+        detector_images = []
+        for i, map in enumerate(radiance_maps): 
+            detector_images.append(map * quantum_efficiency[i] * quantum_yield[i])
 
+        detector_images = self.__clip_at_full_well(detector_images)
+        pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only)
+    
+
+    def __interpolate_quantum_efficiency(self):
+        quantum_efficiency = self.__load_quantum_efficiency_curve()
+        return np.interp(self.wavelengths.value, quantum_efficiency['wavelength [Å]'].values, quantum_efficiency['qe'].values)
+
+    
+    def __load_quantum_efficiency_curve(self):
+        df = read_csv(os.getenv('suncet_data') + 'quantum_efficiency/' + self.config.quantum_efficiency_filename, skiprows=1)
+        df.columns = ['wavelength [Å]', 'qe']
+        return df
+    
+    def __compute_quantum_yields(self):
+        photoelectron_in_silicon = 3.63 * u.eV * u.ph / u.electron # the magic number 3.63 here the typical energy [eV] to release a photoelectron in silicon
+        return (const.h * const.c / self.wavelengths.to(u.m)).to(u.eV) / photoelectron_in_silicon 
+
+
+    def __clip_at_full_well(detector_images):
+        pass # TODO: implement clip_at_full_well
     
     def make_dark_frame(self):
         pass # TODO: implement make_dark_frame
