@@ -1,4 +1,5 @@
 import os
+import warnings
 from glob import glob
 import numpy as np
 from pandas import read_fwf, read_csv
@@ -116,10 +117,13 @@ class Hardware:
         quantum_yield = self.__compute_quantum_yields()
         detector_images = []
         for i, map in enumerate(radiance_maps): 
-            detector_images.append(map * quantum_efficiency[i] * quantum_yield[i])
+            #detector_images.append(map * quantum_efficiency[i] * quantum_yield[i]) # TODO: Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
+            quantum_yield_units_hacked = quantum_yield[i] * u.count/u.electron
+            detector_images.append(map * quantum_efficiency[i] * quantum_yield_units_hacked) # TODO: Should really be in electrons, not counts
+        detector_images = sunpy.map.MapSequence(detector_images)
 
         detector_images = self.__clip_at_full_well(detector_images)
-        pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only)
+        pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only) # 2023-03-06: still need to implement electron shot noise
     
 
     def __interpolate_quantum_efficiency(self):
@@ -137,8 +141,19 @@ class Hardware:
         return (const.h * const.c / self.wavelengths.to(u.m)).to(u.eV) / photoelectron_in_silicon 
 
 
-    def __clip_at_full_well(detector_images):
-        pass # TODO: implement clip_at_full_well
+    def __clip_at_full_well(self, detector_images):
+        clipped_images = []
+        for map in detector_images: 
+            mask = map.data > self.config.pixel_full_well.value
+            map.data[mask] = self.config.pixel_full_well
+            clipped_images.append(map)
+            
+            if map.unit != self.config.pixel_full_well.unit: 
+                unit_mismatch = True
+        if unit_mismatch: 
+            warnings.warn('The units for at least one of the detector images does not match the units of the pixel full well.')
+        
+        return sunpy.map.MapSequence(clipped_images)
     
     def make_dark_frame(self):
         pass # TODO: implement make_dark_frame
