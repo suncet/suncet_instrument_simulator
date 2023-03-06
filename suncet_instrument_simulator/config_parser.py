@@ -34,28 +34,28 @@ class Config:
         self.filter_focal_plane_transmission_filename = config['telescope']['filter_focal_plane_transmission_filename']
 
         # detector
-        self.detector_physical_area = config['detector']['detector_physical_area']
+        self.detector_physical_area = config['detector'].getfloat('detector_physical_area') * u.cm**2
         self.image_dimensions = json.loads(config.get('detector', 'image_dimensions')) * u.pix
-        self.plate_scale = config['detector']['plate_scale'] * u.arcsec / u.pix
+        self.plate_scale = config['detector'].getfloat('plate_scale') * u.arcsec / u.pix
         self.quantum_efficiency_filename = config['detector']['quantum_efficiency_filename']
-        self.read_noise = config['detector']['read_noise'] * u.electron
-        self.pixel_full_well = config['detector']['pixel_full_well'] * u.electron
+        self.read_noise = config['detector'].getfloat('read_noise') * u.electron
+        self.pixel_full_well = config['detector'].getfloat('pixel_full_well') * u.electron
         self.num_pixels_to_bin = json.loads(config.get('detector', 'num_pixels_to_bin'))
-        self.readout_bits = config['detector']['readout_bits'] * u.bit
-        self.detector_temperature = config['detector']['detector_temperature'] * u.deg_C
-        self.detector_gain = config['detector']['detector_gain'] * u.dn / u.electron
-        self.fraction_dead_pixels = config['detector']['fraction_dead_pixels']
-        self.fraction_hot_pixels = config['detector']['fraction_hot_pixels']
-        self.spike_rate = config['detector']['spike_rate'] / u.second / u.cm**2
+        self.readout_bits = config['detector'].getint('readout_bits') * u.bit
+        self.detector_temperature = config['detector'].getfloat('detector_temperature') * u.deg_C
+        self.detector_gain = config['detector'].getfloat('detector_gain') * u.dn / u.electron
+        self.fraction_dead_pixels = config['detector'].getfloat('fraction_dead_pixels')
+        self.fraction_hot_pixels = config['detector'].getfloat('fraction_hot_pixels')
+        self.spike_rate = config['detector'].getfloat('spike_rate') / u.second / u.cm**2
 
         # shdr
-        self.exposure_time_short = config['shdr']['exposure_time_short'] * u.second
-        self.exposure_time_long = config['shdr']['exposure_time_long'] * u.second
-        self.num_short_exposures_to_stack = config['shdr']['num_short_exposures_to_stack']
-        self.num_long_exposures_to_stack = config['shdr']['num_long_exposures_to_stack']
-        self.num_inner_rows_for_short_exposure = config['shdr']['num_inner_rows_for_short_exposure']
-        self.inner_fov_circle_radius = config['shdr']['inner_fov_circle_radius'] * u.solRad
-        self.jitter = config['shdr']['jitter'] * u.arcsec / u.second
+        self.exposure_time_short = config['shdr'].getfloat('exposure_time_short') * u.second
+        self.exposure_time_long = config['shdr'].getfloat('exposure_time_long') * u.second
+        self.num_short_exposures_to_stack = config['shdr'].getint('num_short_exposures_to_stack')
+        self.num_long_exposures_to_stack = config['shdr'].getint('num_long_exposures_to_stack')
+        self.num_inner_rows_for_short_exposure = config['shdr'].getint('num_inner_rows_for_short_exposure')
+        self.inner_fov_circle_radius = config['shdr'].getfloat('inner_fov_circle_radius') * u.solRad
+        self.jitter = config['shdr'].getfloat('jitter') * u.arcsec / u.second
 
         # format
         self.base_metadata_filename = config['format']['base_metadata_filename']
