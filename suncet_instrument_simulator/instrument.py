@@ -112,7 +112,7 @@ class Hardware:
         pass # TODO: implement apply_photon_shot_noise (2 element return: new_radiance_maps, noise_only)
 
     
-    def convert_to_electrons(self, radiance_maps, photon_shot_noise):
+    def convert_to_electrons(self, radiance_maps, photon_shot_noise): # TODO: What to do with photon_shot_noise?
         quantum_efficiency = self.__interpolate_quantum_efficiency()
         quantum_yield = self.__compute_quantum_yields()
         detector_images = []
@@ -123,6 +123,8 @@ class Hardware:
         detector_images = sunpy.map.MapSequence(detector_images)
 
         detector_images = self.__clip_at_full_well(detector_images)
+
+        return detector_images, None
         pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only) # 2023-03-06: still need to implement electron shot noise
     
 
@@ -168,11 +170,15 @@ class Hardware:
     
 
     def combine_signal_and_noise(self, detector_images, pure_signal, noise_only):
+        return detector_images
         pass # TODO: implement combine_signal_and_noise
 
     
     def convert_to_dn(self, detector_images):
-        pass # TODO: implement convert_to_dn
+        return sunpy.map.MapSequence([map *  (self.config.detector_gain * u.dN/u.dn * u.electron/u.count) # TODO: Remove all these unit gymnastics once sunpy issue has been resolved https://github.com/sunpy/sunpy/issues/6823
+                                      for map in detector_images])
+        #return sunpy.map.MapSequence([map *  self.config.detector_gain # TODO: This is all that'll be needed once TODO above is addressed
+        #                              for map in detector_images])
 
     
     def apply_screwy_pixels(self, detector_images, spike_frame):
