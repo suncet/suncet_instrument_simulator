@@ -91,7 +91,7 @@ class Hardware:
     def interpolate_spatial_resolution(self, radiance_maps):
         map_list = []
         for map in radiance_maps: 
-            map_list.append(map.resample(self.config.image_dimensions, method='spline')) # TODO: Figure out why the CDELTs in map.fits_header['CDELT1'] don't update with the resample
+            map_list.append(map.resample(self.config.image_dimensions, method='nearest')) # TODO: Figure out why the CDELTs in map.fits_header['CDELT1'] don't update with the resample
         return sunpy.map.MapSequence(map_list)
 
 
@@ -120,27 +120,28 @@ class Hardware:
     
 
     def apply_photon_shot_noise(self, radiance_maps):
-        return radiance_maps, None
-        pass # TODO: implement apply_photon_shot_noise (2 element return: new_radiance_maps, noise_only)
-
-    
-    def convert_to_electrons(self, radiance_maps, photon_shot_noise): # TODO: What to do with photon_shot_noise?
+        map_list = []
+        for map in radiance_maps:
+            noisy_photons = np.random.poisson(lam=map.data)
+            map_list.append(sunpy.map.Map(noisy_photons, map.meta))
         
+        return sunpy.map.MapSequence(map_list)
+
+
+    def convert_to_electrons(self, radiance_maps, apply_noise=True): # TODO: What to do with photon_shot_noise?
         quantum_yield = self.__compute_quantum_yields()
-        detector_images = []
+        detector_image = radiance_maps[0].data * 0 # empty array
         for i, map in enumerate(radiance_maps): 
             #detector_images.append(map * quantum_yield[i]) # TODO: Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
             quantum_yield_units_hacked = quantum_yield[i] * u.count/u.electron
-            detector_images.append(map * quantum_yield_units_hacked) # TODO: Should really be in electrons, not counts
+            detector_image = detector_image + (map.data * map.unit) * quantum_yield_units_hacked # TODO: Should really be in electrons, not counts
+        detector_image = sunpy.map.Map(detector_image, radiance_maps[0].meta) # TODO: Update any of the meta? Wavelength?
 
-        # TODO: Collapse all wavelengths in sequence down to single image
-        # TODO: Then apply Fano factor with Poisson shot noise (np.random.poisson(lam=detector_images))
+        if apply_noise:
+            detector_image = self.__apply_fano_noise(detector_image)
 
-
-        detector_images = self.__clip_at_full_well(detector_images)
-
-        return detector_images, None
-        pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only) # 2023-03-06: still need to implement electron shot noise
+        detector_image = self.__clip_at_full_well(detector_image)
+        return detector_image
     
     
     def __compute_quantum_yields(self):
@@ -148,19 +149,23 @@ class Hardware:
         return (const.h * const.c / self.wavelengths.to(u.m)).to(u.eV) / photoelectron_in_silicon 
 
 
-    def __clip_at_full_well(self, detector_images):
-        clipped_images = []
-        for map in detector_images: 
-            mask = map.data > self.config.pixel_full_well.value
-            map.data[mask] = self.config.pixel_full_well
-            clipped_images.append(map)
-            
-            if map.unit != self.config.pixel_full_well.unit: 
-                unit_mismatch = True
-        if unit_mismatch: 
-            warnings.warn('The units for at least one of the detector images does not match the units of the pixel full well.')
+    def __apply_fano_noise(self, detector_image):
+        fano_factor = 0.1190 # Based on material, silicon in this case, and fairly insensitive to wavelength. This number comes from Rodrigues+ 2021 (https://doi.org/10.1016/j.nima.2021.165511)
+        header = detector_image.meta
+        detector_image = np.random.poisson(lam=detector_image.data) * np.sqrt(fano_factor)
+        return sunpy.map.Map(detector_image, header)
+
+
+    def __clip_at_full_well(self, detector_image):
+        mask = detector_image.data > self.config.pixel_full_well.value
+        detector_image.data[mask] = self.config.pixel_full_well
         
-        return sunpy.map.MapSequence(clipped_images)
+        if detector_image.unit != self.config.pixel_full_well.unit: 
+            unit_mismatch = True
+        if unit_mismatch: 
+            warnings.warn('The units for the detector image does not match the units of the pixel full well.')
+        
+        return detector_image
     
     def make_dark_frame(self):
         pass # TODO: implement make_dark_frame

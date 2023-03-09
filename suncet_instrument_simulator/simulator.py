@@ -44,7 +44,6 @@ class Simulator:
             self.radiance_maps = self.hardware.apply_scattered_light_psf(self.radiance_maps)
         self.radiance_maps = self.hardware.apply_effective_area(self.radiance_maps)
         self.radiance_maps = self.hardware.apply_exposure_times(self.radiance_maps)
-        self.pure_signal = self.radiance_maps
 
     
     def __load_radiance_maps(self):
@@ -53,8 +52,10 @@ class Simulator:
 
 
     def __simulate_noise(self):
-        self.radiance_maps, self.noise_only = self.hardware.apply_photon_shot_noise(self.radiance_maps)
-        self.detector_images, self.noise_only = self.hardware.convert_to_electrons(self.radiance_maps, self.noise_only)
+        self.radiance_maps_pure = self.radiance_maps
+        self.radiance_maps = self.hardware.apply_photon_shot_noise(self.radiance_maps)
+        self.detector_images = self.hardware.convert_to_electrons(self.radiance_maps, apply_noise=True)
+        self.detector_images_pure = self.hardware.convert_to_electrons(self.radiance_maps_pure, apply_noise=False)
         self.dark_frame = self.hardware.make_dark_frame()
         self.read_frame = self.hardware.make_read_frame()
         self.spike_frame = self.hardware.make_spike_frame()
