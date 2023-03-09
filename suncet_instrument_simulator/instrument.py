@@ -37,8 +37,9 @@ class Hardware:
         geometric_area = np.pi * ((self.config.entrance_aperture)/2)**2
         mirror_reflectivity = self.__interpolate_mirror_coating_reflectivity()
         filter_transmission = self.__interpolate_filter_transmission()
+        quantum_efficiency = self.__interpolate_quantum_efficiency()
         
-        self.effective_area = geometric_area * mirror_reflectivity * filter_transmission
+        self.effective_area = geometric_area * mirror_reflectivity * filter_transmission * quantum_efficiency
 
 
     def __interpolate_mirror_coating_reflectivity(self):
@@ -64,6 +65,17 @@ class Hardware:
         df['wavelength [nm]'] *= 10
         df.rename(columns={'wavelength [nm]': 'wavelength [Å]'}, inplace=True)
         return df 
+    
+
+    def __interpolate_quantum_efficiency(self):
+        quantum_efficiency = self.__load_quantum_efficiency_curve()
+        return np.interp(self.wavelengths.value, quantum_efficiency['wavelength [Å]'].values, quantum_efficiency['qe'].values)
+
+    
+    def __load_quantum_efficiency_curve(self):
+        df = read_csv(os.getenv('suncet_data') + 'quantum_efficiency/' + self.config.quantum_efficiency_filename, skiprows=1)
+        df.columns = ['wavelength [Å]', 'qe']
+        return df
 
 
     def extract_fov(self, radiance_maps):
@@ -113,30 +125,23 @@ class Hardware:
 
     
     def convert_to_electrons(self, radiance_maps, photon_shot_noise): # TODO: What to do with photon_shot_noise?
-        quantum_efficiency = self.__interpolate_quantum_efficiency()
+        
         quantum_yield = self.__compute_quantum_yields()
         detector_images = []
         for i, map in enumerate(radiance_maps): 
-            #detector_images.append(map * quantum_efficiency[i] * quantum_yield[i]) # TODO: Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
+            #detector_images.append(map * quantum_yield[i]) # TODO: Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
             quantum_yield_units_hacked = quantum_yield[i] * u.count/u.electron
-            detector_images.append(map * quantum_efficiency[i] * quantum_yield_units_hacked) # TODO: Should really be in electrons, not counts
-        detector_images = sunpy.map.MapSequence(detector_images)
+            detector_images.append(map * quantum_yield_units_hacked) # TODO: Should really be in electrons, not counts
+
+        # TODO: Collapse all wavelengths in sequence down to single image
+        # TODO: Then apply Fano factor with Poisson shot noise (np.random.poisson(lam=detector_images))
+
 
         detector_images = self.__clip_at_full_well(detector_images)
 
         return detector_images, None
         pass # TODO: implement convert_to_electrons (2 element return: new_radiance_maps, noise_only) # 2023-03-06: still need to implement electron shot noise
     
-
-    def __interpolate_quantum_efficiency(self):
-        quantum_efficiency = self.__load_quantum_efficiency_curve()
-        return np.interp(self.wavelengths.value, quantum_efficiency['wavelength [Å]'].values, quantum_efficiency['qe'].values)
-
-    
-    def __load_quantum_efficiency_curve(self):
-        df = read_csv(os.getenv('suncet_data') + 'quantum_efficiency/' + self.config.quantum_efficiency_filename, skiprows=1)
-        df.columns = ['wavelength [Å]', 'qe']
-        return df
     
     def __compute_quantum_yields(self):
         photoelectron_in_silicon = 3.63 * u.eV * u.ph / u.electron # the magic number 3.63 here the typical energy [eV] to release a photoelectron in silicon
@@ -177,6 +182,8 @@ class Hardware:
     def convert_to_dn(self, detector_images):
         return sunpy.map.MapSequence([map *  (self.config.detector_gain * u.dN/u.dn * u.electron/u.count) # TODO: Remove all these unit gymnastics once sunpy issue has been resolved https://github.com/sunpy/sunpy/issues/6823
                                       for map in detector_images])
+    
+        # TODO: Clip to DN max (Alan set the gain so that pixel full well [33k] electrons is 90% of the ADC dynamic range); therefore, if the image has already been clipped to full well, this clipping function shouldn't ever do anything
         #return sunpy.map.MapSequence([map *  self.config.detector_gain # TODO: This is all that'll be needed once TODO above is addressed
         #                              for map in detector_images])
 
