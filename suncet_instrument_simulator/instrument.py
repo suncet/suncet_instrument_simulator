@@ -137,7 +137,6 @@ class Hardware:
 
     
     def apply_exposure_times(self, radiance_maps):
-
         '''
         An input Sunpy radiance map sequence is normalized by exposure time 
         from a config file.  Two radiance map sequences are output, the first
@@ -262,8 +261,31 @@ class OnboardSoftware:
         self.config = config
     
 
-    def subtract_dark(self, detector_images, dark_frame):
-        pass # TOOD: implement subtract_dark
+    def subtract_dark(self, detector_images):
+        '''
+        A dark frame map, drawn from a random distribution on the basis of a 
+        config item for the average dark current in the detector as a function
+        of temperature, is subtracted from each detector image. A map of
+        detector images is returned
+        
+
+        Parameters
+        ----------
+        detector_images : [sunpy.map.MapSequence]
+            A sunpy detector images map sequence
+        dark_frame : [self.dark_frame]
+            A config dark_frame map
+
+        Returns
+        ---
+        detector_images : [sunpy.map.MapSequence]
+            A dark current subtracted sunpy detector images map sequence 
+
+        TODO
+        ---
+        TODO: Test to see if detector images are same dimension as the dark frame
+        '''
+        return sunpy.map.detector_images([map-self.dark_frame/map.fits_header['EXPTIME'] for map in detector_images])
 
     
     def separate_images(self, onboard_processed_images):
