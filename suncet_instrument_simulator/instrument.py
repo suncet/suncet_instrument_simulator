@@ -110,13 +110,73 @@ class Hardware:
 
     
     def apply_effective_area(self, radiance_maps):
-        return radiance_maps
-        pass # TODO: implement apply_effective_area
+        '''
+        The effective area of SunCET is the product of the detector quantum 
+        efficiency and the collecting area.  This module multiplies input 
+        Sunpy radiance map sequence by the instrument effective area
+
+        Parameters
+        ----------
+        radiance_maps : [sunpy.map.MapSequence]
+            A sunpy radiance map sequence
+        effective_area : [self.effective_area]
+            Instrument exposure array
+
+        Returns
+        ---
+        radiance_maps_long : ['sunpy.map.MapSequence']
+            A sunpy radiance map sequence normalised to long exposure times
+
+        TODO
+        ----
+        TODO:apply size test for maps and self.effective_area
+
+        '''
+        return sunpy.map.MapSequence([map*self.effective_area for map in radiance_maps])
+        
 
     
     def apply_exposure_times(self, radiance_maps):
-        return radiance_maps
-        pass # TODO: implement apply_exposure_times
+
+        '''
+        An input Sunpy radiance map sequence is normalized by exposure time 
+        from a config file.  Two radiance map sequences are output, the first
+        with long exposure times, the second with short exposure times.  The 
+        output map sequences have the same dimensions as the input sequence.
+
+        Parameters
+        ----------
+        radiance_maps : [sunpy.map.MapSequence]
+            A sunpy radiance map sequence
+        exposure_time : [self.config.exposure_time_long]
+            A config exposure time
+        exposure_time : [self.config.exposure_time_short]
+            A config exposure time
+ 
+        
+        Returns
+        ---
+        radiance_maps_long : ['sunpy.map.MapSequence']
+            A sunpy radiance map sequence normalised to long exposure times
+        radiance_maps_short : ['sunpy.map.MapSequence']
+            A sunpy radiance map sequence normalised to short exposure times
+
+        TODO
+        ---
+        TODO: Test to see if the first return is long, and the secong short
+        '''
+
+        long_exposure_map_list = []
+        short_exposure_map_list = []
+
+        for map in radiance_maps: 
+            map.fits_header['EXPTIME']=self.config.exposure_time_long
+            long_exposure_map_list.append(map*self.config.exposure_time_long)
+
+            map.fits_header['EXPTIME']=self.config.exposure_time_short
+            short_exposure_map_list.append(map*self.config.exposure_time_short)
+        
+        return sunpy.map.MapSequence(long_exposure_map_list), sunpy.map.MapSequence(short_exposure_map_list)
     
 
     def apply_photon_shot_noise(self, radiance_maps):
