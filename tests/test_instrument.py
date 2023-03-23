@@ -6,6 +6,7 @@ import setup_minimum_required_folders_files
 def test_instrument():
     if os.getenv('suncet_data') == None:
         os.environ['suncet_data'] = './'
+        setup_minimum_required_folders_files.run()
     
     hardware = setup_instrument_hardware()
     run_mirror_coating_tests(hardware)
@@ -28,5 +29,4 @@ def run_mirror_coating_tests(hardware):
 
 
 if __name__ == "__main__":
-    setup_minimum_required_folders_files.run()
     test_instrument()
