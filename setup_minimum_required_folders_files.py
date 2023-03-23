@@ -41,6 +41,7 @@ def run():
         elif filename.startswith('filter_'):
             filename = filter_path / filename
         with open(filename, "wb") as f:
+            print('downloading file: {}'.format(filename))
             f.write(data)
 
 def get_filename_from_url(url):
