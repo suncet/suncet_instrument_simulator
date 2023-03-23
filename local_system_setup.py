@@ -11,13 +11,13 @@ import setup_minimum_required_folders_files
 
 # 4. Scripted prompt: Define environment variable for "suncet_data" path
 # TODO: figure out how to prompt user to specify the path
-os.environ['suncet_data'] = './'
+#os.environ['suncet_data'] = './'
 
 # 5. Scripted: Configure the necessary directory structure and download the minimum set of required files
-setup_minimum_required_folders_files.run() # TODO: Figure out how to call this script
+#setup_minimum_required_folders_files.run() # TODO: Figure out how to call this script
 
 # 6. Scripted: Configure things so that pytest is always looking at the most recent edited code
-!pip install -e . 
+#!pip install -e . 
 
 # 7. Manual: In your dev tools (VS Code or PyCharm or whatever), open up the folder that you cloned
 
