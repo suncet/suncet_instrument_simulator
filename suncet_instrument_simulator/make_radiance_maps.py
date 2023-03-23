@@ -9,8 +9,8 @@ import sunpy.map
 from astropy.io import fits
 
 class MakeRadianceMaps:
-    def __init__(self, config_filename=os.getcwd() + '/config_files/config_default.ini'):
-        self.config = self.__read_config(config_filename)
+    def __init__(self, config):
+        self.config = config
 
 
     def run(self, save=False):

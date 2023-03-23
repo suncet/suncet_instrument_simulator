@@ -25,7 +25,7 @@ def setup_instrument_hardware():
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = config_parser.Config(config_filename)
     hardware = instrument.Hardware(config)
-    radiance_maps = make_radiance_maps.MakeRadianceMaps(os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini').run()
+    radiance_maps = make_radiance_maps.MakeRadianceMaps(config).run()
     hardware.store_target_wavelengths(radiance_maps)
     hardware.compute_effective_area()
     return hardware

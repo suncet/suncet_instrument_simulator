@@ -30,7 +30,7 @@ class Simulator:
 
     def __sun_to_detector(self):
         if self.config.compute_new_radiance_maps:
-            self.radiance_maps = make_radiance_maps.MakeRadianceMaps(os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini').run()
+            self.radiance_maps = make_radiance_maps.MakeRadianceMaps(self.config).run()
         else: 
             self.__load_radiance_maps()
         self.hardware.store_target_wavelengths(self.radiance_maps)
