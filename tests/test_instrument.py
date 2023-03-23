@@ -5,7 +5,7 @@ import ssl
 import numpy as np
 import astropy.units as u
 from urllib.parse import urlparse
-from suncet_instrument_simulator import config_parser, instrument
+from suncet_instrument_simulator import config_parser, instrument, make_radiance_maps
 
 tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.txt?dl=1", 
                  "https://www.dropbox.com/s/f51fep2nu1vr7ai/euv_sim_300_171A.fits?dl=1", 
@@ -25,6 +25,8 @@ def setup_instrument_hardware():
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = config_parser.Config(config_filename)
     hardware = instrument.Hardware(config)
+    radiance_maps = make_radiance_maps.MakeRadianceMaps(os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini').run()
+    hardware.store_target_wavelengths(radiance_maps)
     hardware.compute_effective_area()
     return hardware
 
