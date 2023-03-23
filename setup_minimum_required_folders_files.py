@@ -11,7 +11,8 @@ tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.t
                  "https://www.dropbox.com/s/dbdbaheav9akbwp/em_map_240.sav?dl=1",
                  "https://www.dropbox.com/s/z86h2h7l8pgbhnl/filter_entrance_transmission.csv?dl=1",
                  "https://www.dropbox.com/s/muclu9kncl7xyff/filter_focal_plane_transmission.csv?dl=1",
-                 "https://www.dropbox.com/s/tvqt8ybipa1bm8z/aia_V9_fullemiss.nc?dl=1"] # dl=1 is important
+                 "https://www.dropbox.com/s/tvqt8ybipa1bm8z/aia_V9_fullemiss.nc?dl=1", 
+                 "https://www.dropbox.com/s/k1qv0lujqmpvszn/si_qe_henke.csv?dl=1"] # dl=1 is important
 
 def run():
     if os.getenv('suncet_data') == None:
@@ -27,6 +28,8 @@ def run():
     reflectivity_path.mkdir(parents=True, exist_ok=True)
     filter_path = Path('./filter_transmission')
     filter_path.mkdir(parents=True, exist_ok=True)
+    qe_path = Path('.//quantum_efficiency')
+    qe_path.mkdir(parents=True, exist_ok=True)
 
     ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -45,6 +48,8 @@ def run():
             filename = reflectivity_path / filename
         elif filename.startswith('filter_'):
             filename = filter_path / filename
+        elif filename.startswith('si_qe_'):
+            filename = qe_path / filename
         with open(filename, "wb") as f:
             print('downloading file: {}'.format(filename))
             f.write(data)
