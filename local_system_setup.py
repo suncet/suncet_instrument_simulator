@@ -7,17 +7,20 @@ import setup_minimum_required_folders_files
 # 2. Manual: This script assumes that you have already cloned the repository to some local directory, so do that.
 
 # 3. Scripted: Install the environment using conda (you can do this manually with virtualenv instead if you prefer) -- this creates an environment called "suncet"
-#os.call('conda -f environment.yml') # TODO: figure out syntax for calling a shell command
+os.system('conda env create -f environment.yml')
 
-# 4. Scripted prompt: Define environment variable for "suncet_data" path
-# TODO: figure out how to prompt user to specify the path
-#os.environ['suncet_data'] = './'
+# 4. Manual: Define environment variable for "suncet_data" path
+suncet_data_path = input('What path do you want `suncet_data` to be? This is where the minimum set of required files to run the simulator will be downloaded: ')
+os.environ['suncet_data'] = suncet_data_path
+print('You are executing from the following shell:')
+os.system('echo $SHELL')
+print('HEY USER: Add an environment variable called suncet_data to your corresponding profile (e.g., ~/.zshrc, ~/.bash_profile, ~/.cshrc) that points to the path you just provided.' )
 
 # 5. Scripted: Configure the necessary directory structure and download the minimum set of required files
-#setup_minimum_required_folders_files.run() # TODO: Figure out how to call this script
+setup_minimum_required_folders_files.run()
 
 # 6. Scripted: Configure things so that pytest is always looking at the most recent edited code
-#!pip install -e . 
+os.system('pip install -e .')
 
 # 7. Manual: In your dev tools (VS Code or PyCharm or whatever), open up the folder that you cloned
 

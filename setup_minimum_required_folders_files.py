@@ -28,7 +28,7 @@ def run():
     reflectivity_path.mkdir(parents=True, exist_ok=True)
     filter_path = Path('./filter_transmission')
     filter_path.mkdir(parents=True, exist_ok=True)
-    qe_path = Path('.//quantum_efficiency')
+    qe_path = Path('./quantum_efficiency')
     qe_path.mkdir(parents=True, exist_ok=True)
 
     ssl._create_default_https_context = ssl._create_unverified_context
