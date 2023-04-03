@@ -132,7 +132,8 @@ class Hardware:
         TODO:apply size test for maps and self.effective_area
 
         '''
-        return sunpy.map.MapSequence([map*self.effective_area for map in radiance_maps])
+        return radiance_maps
+        #return sunpy.map.MapSequence([map*self.effective_area for map in radiance_maps])
         
 
     
@@ -164,19 +165,28 @@ class Hardware:
         ---
         TODO: Test to see if the first return is long, and the secong short
         '''
-
         long_exposure_map_list = []
         short_exposure_map_list = []
 
         for map in radiance_maps: 
-            map.fits_header['EXPTIME']=self.config.exposure_time_long
-            long_exposure_map_list.append(map*self.config.exposure_time_long)
+            map = self.__set_exposure_time(map, self.config.exposure_time_long)
+            long_exposure_map_list.append(map * self.config.exposure_time_long)
 
-            map.fits_header['EXPTIME']=self.config.exposure_time_short
-            short_exposure_map_list.append(map*self.config.exposure_time_short)
+            map = self.__set_exposure_time(map, self.config.exposure_time_short)
+            short_exposure_map_list.append(map * self.config.exposure_time_short)
         
-        return sunpy.map.MapSequence(long_exposure_map_list), sunpy.map.MapSequence(short_exposure_map_list)
+        return sunpy.map.MapSequence(long_exposure_map_list, short_exposure_map_list)
     
+
+    def __set_exposure_time(self, sunpy_map, new_exposure_time):
+        if "EXPTIME" in sunpy_map.meta:
+            sunpy_map.meta["EXPTIME"] = new_exposure_time
+        elif "EXPOSURE" in sunpy_map.meta:
+            sunpy_map.meta["EXPOSURE"] = new_exposure_time
+        else:
+            raise KeyError("The header does not contain an exposure time keyword (EXPTIME or EXPOSURE).")
+        return sunpy_map
+
 
     def apply_photon_shot_noise(self, radiance_maps):
         map_list = []
@@ -187,7 +197,21 @@ class Hardware:
         return sunpy.map.MapSequence(map_list)
 
 
-    def convert_to_electrons(self, radiance_maps, apply_noise=True): # TODO: What to do with photon_shot_noise?
+    def convert_to_electrons(self, radiance_maps, apply_noise=True):
+        radiance_maps_long, radiance_maps_short = self.__filter_mapsequence_by_exposure(radiance_maps)
+
+        detector_image_long = self.__convert_to_electrons(radiance_maps_long, apply_noise=apply_noise)
+        detector_image_short = self.__convert_to_electrons(radiance_maps_short, apply_noise=apply_noise)
+        return sunpy.map.MapSequence(detector_image_long, detector_image_short)
+
+
+    def __filter_mapsequence_by_exposure(self, mapsequence):
+        short_exposures = [m for m in mapsequence if m.exposure_time.value == self.config.exposure_time_short.value]
+        long_exposures = [m for m in mapsequence if m.exposure_time.value == self.config.exposure_time_long.value]
+        return sunpy.map.MapSequence(long_exposures), sunpy.map.MapSequence(short_exposures)
+    
+
+    def __convert_to_electrons(self, radiance_maps, apply_noise=True):
         quantum_yield = self.__compute_quantum_yields()
         detector_image = radiance_maps[0].data * 0 # empty array
         for i, map in enumerate(radiance_maps): 
@@ -202,7 +226,7 @@ class Hardware:
         detector_image = self.__clip_at_full_well(detector_image)
         return detector_image
     
-    
+
     def __compute_quantum_yields(self):
         photoelectron_in_silicon = 3.63 * u.eV * u.ph / u.electron # the magic number 3.63 here the typical energy [eV] to release a photoelectron in silicon
         return (const.h * const.c / self.wavelengths.to(u.m)).to(u.eV) / photoelectron_in_silicon 
@@ -253,6 +277,7 @@ class Hardware:
 
     
     def apply_screwy_pixels(self, detector_images, spike_frame):
+        return detector_images
         pass # TODO: implement apply_screwy_pixels (spikes, dead pixels, hot pixels; ensure that none of these are above the full well)
 
 
@@ -261,7 +286,7 @@ class OnboardSoftware:
         self.config = config
     
 
-    def subtract_dark(self, detector_images):
+    def subtract_dark(self, detector_images, dark_frame):
         '''
         A dark frame map, drawn from a random distribution on the basis of a 
         config item for the average dark current in the detector as a function
@@ -285,10 +310,11 @@ class OnboardSoftware:
         ---
         TODO: Test to see if detector images are same dimension as the dark frame
         '''
-        return sunpy.map.detector_images([map-self.dark_frame/map.fits_header['EXPTIME'] for map in detector_images])
+        #return sunpy.map.MapSequence([map - dark_frame / map.meta['EXPOSURE'] for map in detector_images]) # TODO: Won't work until we have something sensible returned for make_dark_frame()
 
     
     def separate_images(self, onboard_processed_images):
+
         pass # TODO: implement separate_images
 
 
@@ -302,6 +328,7 @@ class OnboardSoftware:
     
     def bin_image(self, onboard_processed_images):
         pass # TODO: implement bin_image
+
 
 if __name__ == "__main__":
     config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'

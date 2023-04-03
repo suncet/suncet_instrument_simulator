@@ -62,12 +62,14 @@ class Simulator:
 
         self.__combine_noise_sources()
 
+
     def __combine_noise_sources(self):
+        self.noise_only = None
         pass # implement combine_noise_sources (self.noise_only, self.dark_frame, self.read_frame, and self.spike_frame)
     
 
     def __simulate_detector(self):
-        self.detector_images = self.hardware.combine_signal_and_noise(self.detector_images, self.pure_signal, self.noise_only)
+        self.detector_images = self.hardware.combine_signal_and_noise(self.detector_images, self.detector_images_pure, self.noise_only)
         self.detector_images = self.hardware.convert_to_dn(self.detector_images)
         self.detector_images = self.hardware.apply_screwy_pixels(self.detector_images, self.spike_frame)    
 
