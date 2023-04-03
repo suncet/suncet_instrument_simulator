@@ -1,4 +1,4 @@
-name: suncet
+name: suncet_simulator
 channels:
   - conda-forge
   - defaults
