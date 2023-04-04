@@ -4,10 +4,12 @@ from glob import glob
 import numpy as np
 from pandas import read_fwf, read_csv
 import astropy.units as u
+from astropy.units import UnitsError
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from astropy import constants as const
 import sunpy.map
+from sunpy.coordinates import frames
 from suncet_instrument_simulator import config_parser # This is just for running as a script -- should delete when done testing
 from scipy.io import readsav # TODO: remove this temporary hack once we have radiance map files in non-IDL-saveset format
 
@@ -133,7 +135,7 @@ class Hardware:
 
         '''
         return radiance_maps
-        #return sunpy.map.MapSequence([map*self.effective_area for map in radiance_maps])
+        #return sunpy.map.MapSequence([map * self.effective_area for map in radiance_maps])
         
 
     
@@ -218,7 +220,7 @@ class Hardware:
             #detector_images.append(map * quantum_yield[i]) # TODO: Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
             quantum_yield_units_hacked = quantum_yield[i] * u.count/u.electron
             detector_image = detector_image + (map.data * map.unit) * quantum_yield_units_hacked # TODO: Should really be in electrons, not counts
-        detector_image = sunpy.map.Map(detector_image, radiance_maps[0].meta) # TODO: Update any of the meta? Wavelength?
+        detector_image = self.__update_map_meta(detector_image, radiance_maps[0].meta, quantum_yield_units_hacked) # TODO: Update to "quantum_yield" once above issue resolved
 
         if apply_noise:
             detector_image = self.__apply_fano_noise(detector_image)
@@ -226,6 +228,16 @@ class Hardware:
         detector_image = self.__clip_at_full_well(detector_image)
         return detector_image
     
+
+    def __update_map_meta(self, detector_image, meta, quantum_yield):
+        meta['wavelnth'] = self.wavelengths.mean().value
+        meta['waveunit'] = self.wavelengths.mean().unit.to_string()
+        
+        map = sunpy.map.Map(detector_image, meta)
+
+        map = map * (1 * quantum_yield.unit)
+        return map
+
 
     def __compute_quantum_yields(self):
         photoelectron_in_silicon = 3.63 * u.eV * u.ph / u.electron # the magic number 3.63 here the typical energy [eV] to release a photoelectron in silicon
@@ -244,9 +256,7 @@ class Hardware:
         detector_image.data[mask] = self.config.pixel_full_well
         
         if detector_image.unit != self.config.pixel_full_well.unit: 
-            unit_mismatch = True
-        if unit_mismatch: 
-            warnings.warn('The units for the detector image does not match the units of the pixel full well.')
+            raise UnitsError('The units for the detector image does not match the units of the pixel full well.')
         
         return detector_image
     
@@ -310,12 +320,52 @@ class OnboardSoftware:
         ---
         TODO: Test to see if detector images are same dimension as the dark frame
         '''
+        return detector_images
         #return sunpy.map.MapSequence([map - dark_frame / map.meta['EXPOSURE'] for map in detector_images]) # TODO: Won't work until we have something sensible returned for make_dark_frame()
 
     
     def separate_images(self, onboard_processed_images):
+        disk_images = []
+        off_disk_images = []
+        radius = self.config.inner_fov_circle_radius
+        for map in onboard_processed_images:
+            solar_disk_center, solar_disk_radius = self.__get_solar_disk_center_and_radius_in_pixels(map)
+            disk_bottom_left, disk_top_right, complement_bottom_left, complement_top_right = \
+                self.__get_coordinates_for_solar_disk_and_complement(solar_disk_center, solar_disk_radius, map)
 
+            solar_disk_map = map.submap(
+                map.pixel_to_world(disk_bottom_left[0], disk_bottom_left[1]),
+                top_right=map.pixel_to_world(disk_top_right[0], disk_top_right[1])
+            )
+
+            complement_map = map.submap(
+                map.pixel_to_world(complement_bottom_left.x, complement_bottom_left.y),
+                top_right=map.pixel_to_world(complement_top_right.x, complement_top_right.y)
+            )
+
+        # TODO: how to combine things for return
+        #return solar_disk_map, complement_map
         pass # TODO: implement separate_images
+
+
+    def __get_solar_disk_center_and_radius_in_pixels(self, map):
+        solar_disk_center = np.array([
+            map.world_to_pixel(map.center.transform_to(frames.Helioprojective(observer=map.observer_coordinate))).x.value,
+            map.world_to_pixel(map.center.transform_to(frames.Helioprojective(observer=map.observer_coordinate))).y.value
+        ]) * u.pix
+        solar_disk_radius = (map.rsun_obs / map.scale[0]).decompose()
+
+        return solar_disk_center, solar_disk_radius
+    
+
+    def __get_coordinates_for_solar_disk_and_complement(self, solar_disk_center, solar_disk_radius, map):
+        disk_bottom_left = solar_disk_center - self.config.inner_fov_circle_radius.value * solar_disk_radius
+        disk_top_right = solar_disk_center + self.config.inner_fov_circle_radius.value * solar_disk_radius
+
+        complement_bottom_left = map.world_to_pixel(map.bottom_left_coord)
+        complement_top_right = map.world_to_pixel(map.top_right_coord)
+
+        return disk_bottom_left, disk_top_right, complement_bottom_left, complement_top_right
 
 
     def apply_jitter(self, split_images): # Note really onboard software, but this is the place in the logic it belongs
