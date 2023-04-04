@@ -134,8 +134,10 @@ class Hardware:
         TODO:apply size test for maps and self.effective_area
 
         '''
-        return radiance_maps
-        #return sunpy.map.MapSequence([map * self.effective_area for map in radiance_maps])
+        maps = []
+        for i, map in enumerate(radiance_maps):
+            maps.append(map * self.effective_area[i])
+        return sunpy.map.MapSequence(maps)
         
 
     
