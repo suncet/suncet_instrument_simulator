@@ -2,6 +2,7 @@ import os
 import warnings
 from glob import glob
 import numpy as np
+import numpy.ma as ma
 from pandas import read_fwf, read_csv
 import astropy.units as u
 from astropy.units import UnitsError
@@ -254,11 +255,11 @@ class Hardware:
 
 
     def __clip_at_full_well(self, detector_image):
+        if detector_image.unit != self.config.pixel_full_well.unit: 
+            # raise UnitsError('The units for the detector image does not match the units of the pixel full well.') # TODO: uncomment this once earlier functions are written to ensure the units actually are the same
+            return detector_image
         mask = detector_image.data > self.config.pixel_full_well.value
         detector_image.data[mask] = self.config.pixel_full_well
-        
-        if detector_image.unit != self.config.pixel_full_well.unit: 
-            raise UnitsError('The units for the detector image does not match the units of the pixel full well.')
         
         return detector_image
     
@@ -280,7 +281,7 @@ class Hardware:
 
     
     def convert_to_dn(self, detector_images):
-        return sunpy.map.MapSequence([map *  (self.config.detector_gain * u.dN/u.dn * u.electron/u.count) # TODO: Remove all these unit gymnastics once sunpy issue has been resolved https://github.com/sunpy/sunpy/issues/6823
+        return sunpy.map.MapSequence([map * (self.config.detector_gain * u.dN/u.dn * u.electron/u.count) # TODO: Remove all these unit gymnastics once sunpy issue has been resolved https://github.com/sunpy/sunpy/issues/6823
                                       for map in detector_images])
     
         # TODO: Clip to DN max (Alan set the gain so that pixel full well [33k] electrons is 90% of the ADC dynamic range); therefore, if the image has already been clipped to full well, this clipping function shouldn't ever do anything
@@ -325,32 +326,36 @@ class OnboardSoftware:
         return detector_images
         #return sunpy.map.MapSequence([map - dark_frame / map.meta['EXPOSURE'] for map in detector_images]) # TODO: Won't work until we have something sensible returned for make_dark_frame()
 
+
+    def apply_jitter(self, onboard_processed_images): # Note really onboard software, but this is the place in the logic it belongs
+        return onboard_processed_images
+        pass # TODO: implement apply_jitter (will be different for the short exposure central disk and long exposure off-disk)
+
     
-    def separate_images(self, onboard_processed_images):
-        disk_images = []
-        off_disk_images = []
-        radius = self.config.inner_fov_circle_radius
-        for map in onboard_processed_images:
-            solar_disk_center, solar_disk_radius = self.__get_solar_disk_center_and_radius_in_pixels(map)
-            disk_bottom_left, disk_top_right, complement_bottom_left, complement_top_right = \
-                self.__get_coordinates_for_solar_disk_and_complement(solar_disk_center, solar_disk_radius, map)
+    def median_image_stack(self, onboard_processed_images):
+        # TODO: handle the median stacking
+        
+        map1 = onboard_processed_images[0]
+        map2 = onboard_processed_images[1]
+        composite_map = self.__composite_maps(map1, map2)
+        
+        return composite_map # TODO: figure out if this needs to be an array through time or not
+        pass # TODO: impelement median_image_stack (returns a composite images merging the on- and off-disk, and spanning time up to the duration corresponding to how many images to stack (e.g., four 15-second exposures stacked for median will result in a 1-minute composite))
+    
+    
+    def __composite_maps(self, map1, map2):
+        solar_disk_center, solar_disk_radius = self.__get_solar_disk_center_and_radius_in_pixels(map1)
 
-            solar_disk_map = map.submap(
-                map.pixel_to_world(disk_bottom_left[0], disk_bottom_left[1]),
-                top_right=map.pixel_to_world(disk_top_right[0], disk_top_right[1])
-            )
+        # Create a boolean mask where True values represent the solar disk area
+        y_grid, x_grid = np.mgrid[:map1.data.shape[0], :map1.data.shape[1]]
+        disk_mask = ((x_grid - solar_disk_center[0].value)**2 + (y_grid - solar_disk_center[1].value)**2) <= (1.5 * solar_disk_radius.value)**2 # FIXME: appears to be returning values that are actually < 1 Rs
 
-            complement_map = map.submap(
-                map.pixel_to_world(complement_bottom_left.x, complement_bottom_left.y),
-                top_right=map.pixel_to_world(complement_top_right.x, complement_top_right.y)
-            )
-
-        # TODO: how to combine things for return
-        #return solar_disk_map, complement_map
-        pass # TODO: implement separate_images
+        # Combine the two maps using the boolean mask
+        combined_data = np.where(disk_mask, map1.data, map2.data)
+        return sunpy.map.Map(combined_data, map1.meta)
 
 
-    def __get_solar_disk_center_and_radius_in_pixels(self, map):
+    def __get_solar_disk_center_and_radius_in_pixels(self, map): 
         solar_disk_center = np.array([
             map.world_to_pixel(map.center.transform_to(frames.Helioprojective(observer=map.observer_coordinate))).x.value,
             map.world_to_pixel(map.center.transform_to(frames.Helioprojective(observer=map.observer_coordinate))).y.value
@@ -360,25 +365,8 @@ class OnboardSoftware:
         return solar_disk_center, solar_disk_radius
     
 
-    def __get_coordinates_for_solar_disk_and_complement(self, solar_disk_center, solar_disk_radius, map):
-        disk_bottom_left = solar_disk_center - self.config.inner_fov_circle_radius.value * solar_disk_radius
-        disk_top_right = solar_disk_center + self.config.inner_fov_circle_radius.value * solar_disk_radius
-
-        complement_bottom_left = map.world_to_pixel(map.bottom_left_coord)
-        complement_top_right = map.world_to_pixel(map.top_right_coord)
-
-        return disk_bottom_left, disk_top_right, complement_bottom_left, complement_top_right
-
-
-    def apply_jitter(self, split_images): # Note really onboard software, but this is the place in the logic it belongs
-        pass # TODO: implement apply_jitter (will be different for the short exposure central disk and long exposure off-disk)
-
-    
-    def median_image_stack(self, split_images):
-        pass # TODO: impelement median_image_stack (returns a composite images merging the on- and off-disk, and spanning time up to the duration corresponding to how many images to stack (e.g., four 15-second exposures stacked for median will result in a 1-minute composite))
-    
-    
     def bin_image(self, onboard_processed_images):
+        return onboard_processed_images
         pass # TODO: implement bin_image
 
 

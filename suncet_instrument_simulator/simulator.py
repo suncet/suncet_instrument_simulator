@@ -3,11 +3,13 @@ This is the main wrapper for most/all(?) of the other instrument simulator relat
 """
 import os
 from glob import glob
+import astropy.units as u
 import sunpy.map
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
 
 class Simulator:
     def __init__(self, config_filename=os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'):
+        self.config_filename = config_filename
         self.config = self.__read_config(config_filename)
         self.radiance_maps = 'not yet loaded'
         self.hardware = 'not yet loaded'
@@ -79,10 +81,9 @@ class Simulator:
             self.onboard_processed_images = self.onboard_software.subtract_dark(self.detector_images, self.dark_frame)
         else: 
             self.onboard_processed_images = self.detector_images
-        self.split_images = self.onboard_software.separate_images(self.onboard_processed_images)
-        self.split_images = self.onboard_software.apply_jitter(self.split_images)
-        self.onboard_processed_images = self.onboard_software.median_image_stack(self.split_images)
-        self.onboard_processed_images - self.onboard_software.bin_image(self.onboard_processed_images)
+        self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
+        self.onboard_processed_images = self.onboard_software.median_image_stack(self.onboard_processed_images)
+        self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
 
 
     def __calculate_snr(self):
@@ -90,8 +91,36 @@ class Simulator:
 
 
     def __output_files(self):
+        self.__write_fits()
+        self.__write_binary()
+        self.__output_snr()
         pass # implement output_files
+    
 
+    def __write_fits(self):
+        path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
+        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '.fits' # TODO: will have to deal with unique filenames for different timestamps here
+        map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
+        
+        map.save(path+filename, filetype='fits', overwrite=True)
+        pass # TODO: implement write_fits()
+
+
+    def __strip_units_for_fits_compatibility(self, map):
+        meta = map.meta
+        for key, value in meta.items():
+            if isinstance(value, u.Quantity):
+                value = value.value
+            meta[key] = value
+        return sunpy.map.Map(map.data, meta)
+
+
+    def __write_binary(self):
+        pass # TODO: implement write_binary() to mimic onboard (or downlinked?) storage
+
+
+    def __output_snr(self):
+        pass # TODO: implement output_snr()
 
 if __name__ == "__main__":
     simulator = Simulator()

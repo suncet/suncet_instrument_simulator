@@ -30,6 +30,10 @@ def run():
     filter_path.mkdir(parents=True, exist_ok=True)
     qe_path = Path('./quantum_efficiency')
     qe_path.mkdir(parents=True, exist_ok=True)
+    synthetic_path = Path('./synthetic/level0_raw/fits')
+    synthetic_path.mkdir(parents=True, exist_ok=True)
+    synthetic_path = Path('./synthetic/level0_raw/binary')
+    synthetic_path.mkdir(parents=True, exist_ok=True)
 
     ssl._create_default_https_context = ssl._create_unverified_context
 
