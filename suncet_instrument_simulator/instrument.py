@@ -368,9 +368,50 @@ class OnboardSoftware:
         return solar_disk_center, solar_disk_radius
     
 
-    def bin_image(self, onboard_processed_images):
+    def bin_image(self, onboard_processed_images, xbin=1, ybin=1):
+        '''
+        An input Sunpy radiance map sequence is binned by the factors 
+        xbin and ybin.
+
+        Parameters
+        ----------
+        radiance_maps : [sunpy.map.MapSequence]
+            A sunpy radiance map sequence
+        xbin : [int]
+            A factor by which the x dimension of the image is binned
+        ybin : [int]
+            A factor by which the x dimension of the image is binned
+        
+        Returns
+        ---
+        detector_images : [sunpy.map.MapSequence]
+            A binned sunpy detector images map sequence 
+
+        TODO
+        ---
+        check if input is a sunpy map
+        '''
+            
+        # See input array shape
+        array_shape=np.shape(self.data)
+
+        # Check if a number is a factor of input array dimensions.
+        if array_shape[0] % xbin != 0:
+            raise ValueError('xbin value should be an integer value and a factor of the array x dimension')
+        elif array_shape[1] % ybin != 0:
+            raise ValueError('ybin value should be an integer value and a factor of the array y dimension')
+        else:
+            
+            new_y_dim=int(array_shape[0]/ybin)
+            new_x_dim=int(array_shape[1]/xbin)
+            
+            new_dimensions = [new_y_dim, new_x_dim] * u.pixel
+            
+            onboard_processed_images = self.resample(new_dimensions, method='nearest')
+            onboard_processed_images.meta['cdelt1'] = self.config.plate_scale.value # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
+            onboard_processed_images.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
+
         return onboard_processed_images
-        pass # TODO: implement bin_image
 
 
 if __name__ == "__main__":
