@@ -93,8 +93,11 @@ class Hardware:
 
     def interpolate_spatial_resolution(self, radiance_maps):
         map_list = []
-        for map in radiance_maps: 
-            map_list.append(map.resample(self.config.image_dimensions, method='nearest')) # TODO: Figure out why the CDELTs in map.fits_header['CDELT1'] don't update with the resample
+        for map in radiance_maps:
+            resampled_map = map.resample(self.config.image_dimensions, method='nearest')
+            resampled_map.meta['cdelt1'] = self.config.plate_scale.value # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
+            resampled_map.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
+            map_list.append(resampled_map)
         return sunpy.map.MapSequence(map_list)
 
 
@@ -346,9 +349,9 @@ class OnboardSoftware:
     def __composite_maps(self, map1, map2):
         solar_disk_center, solar_disk_radius = self.__get_solar_disk_center_and_radius_in_pixels(map1)
 
-        # Create a boolean mask where True values represent the solar disk area
+        # Create a boolean mask where True values represent the solar ~disk area
         y_grid, x_grid = np.mgrid[:map1.data.shape[0], :map1.data.shape[1]]
-        disk_mask = ((x_grid - solar_disk_center[0].value)**2 + (y_grid - solar_disk_center[1].value)**2) <= (1.5 * solar_disk_radius.value)**2 # FIXME: appears to be returning values that are actually < 1 Rs
+        disk_mask = np.sqrt(((x_grid - solar_disk_center[0].value)**2 + (y_grid - solar_disk_center[1].value)**2)) <= (self.config.inner_fov_circle_radius.value * solar_disk_radius.value)
 
         # Combine the two maps using the boolean mask
         combined_data = np.where(disk_mask, map1.data, map2.data)
