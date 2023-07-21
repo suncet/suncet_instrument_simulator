@@ -27,6 +27,7 @@ class Simulator:
         self.__simulate_detector()
         self.__apply_camera_software()
         self.__calculate_snr()
+        self.__complete_metadata()
         self.__output_files()
     
 
@@ -89,6 +90,9 @@ class Simulator:
     def __calculate_snr(self):
         pass # implement calculate_snr
 
+    
+    def __complete_metadata(self):
+        pass
 
     def __output_files(self):
         self.__write_fits()

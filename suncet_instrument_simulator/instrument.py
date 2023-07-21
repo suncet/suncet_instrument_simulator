@@ -94,7 +94,8 @@ class Hardware:
     def interpolate_spatial_resolution(self, radiance_maps):
         map_list = []
         for map in radiance_maps:
-            resampled_map = map.resample(self.config.image_dimensions, method='nearest')
+            resampled_map = map.resample(self.config.image_dimensions, method='linear')  * ((self.config.plate_scale / map.scale[0]).value)**2
+            resampled_map.data[resampled_map.data < 0] = 0 # Clip any negative numbers that result from the interpolation above -- bottom out at 0
             resampled_map.meta['cdelt1'] = self.config.plate_scale.value # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
             resampled_map.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
             map_list.append(resampled_map)
