@@ -18,21 +18,21 @@ def run():
     if os.getenv('suncet_data') == None:
         os.environ['suncet_data'] = './'
     
-    emissivity_path = Path('./ancillary/emissivity')
+    emissivity_path = Path('/ancillary/emissivity')
     emissivity_path.mkdir(parents=True, exist_ok=True)
-    rendered_path = Path('./mhd/dimmest/rendered_euv_maps')
+    rendered_path = Path(os.getenv('suncet_data') + '/mhd/dimmest/rendered_euv_maps')
     rendered_path.mkdir(parents=True, exist_ok=True)
-    em_path = Path('./mhd/bright_fast/em_maps')
+    em_path = Path(os.getenv('suncet_data') + '/mhd/bright_fast/em_maps')
     em_path.mkdir(parents=True, exist_ok=True)
-    reflectivity_path = Path('./mirror_reflectivity')
+    reflectivity_path = Path(os.getenv('suncet_data') + '/mirror_reflectivity')
     reflectivity_path.mkdir(parents=True, exist_ok=True)
-    filter_path = Path('./filter_transmission')
+    filter_path = Path(os.getenv('suncet_data') + '/filter_transmission')
     filter_path.mkdir(parents=True, exist_ok=True)
-    qe_path = Path('./quantum_efficiency')
+    qe_path = Path(os.getenv('suncet_data') + '/quantum_efficiency')
     qe_path.mkdir(parents=True, exist_ok=True)
-    synthetic_path = Path('./synthetic/level0_raw/fits')
+    synthetic_path = Path(os.getenv('suncet_data') + '/synthetic/level0_raw/fits')
     synthetic_path.mkdir(parents=True, exist_ok=True)
-    synthetic_path = Path('./synthetic/level0_raw/binary')
+    synthetic_path = Path(os.getenv('suncet_data') + '/synthetic/level0_raw/binary')
     synthetic_path.mkdir(parents=True, exist_ok=True)
 
     ssl._create_default_https_context = ssl._create_unverified_context
