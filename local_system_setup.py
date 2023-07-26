@@ -17,7 +17,13 @@ os.system('echo $SHELL')
 print('HEY USER: Add an environment variable called suncet_data to your corresponding profile (e.g., ~/.zshrc, ~/.bash_profile, ~/.cshrc) that points to the path you just provided.' )
 
 # 5. Scripted: Configure the necessary directory structure and download the minimum set of required files
-setup_minimum_required_folders_files.run()
+setup_minimum_required_folders_files.run() 
+# 5.a. if this does not run automatically, perform manually: 
+# make sure your data directory is correctly setup, e.g. export suncet_data='/Users/mwest/work/data/SUNCET_dev' in .zshrc
+# > conda activate suncet_simulator
+# > python setup_minimum_required_folders_files.py
+
+
 
 # 6. Scripted: Configure things so that pytest is always looking at the most recent edited code
 os.system('pip install -e .')
