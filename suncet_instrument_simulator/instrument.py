@@ -399,28 +399,28 @@ class OnboardSoftware:
         #    warnings.warn('bin_image module expected sunpy.map')
 
         # check if bin dimensions added
-        if xbin==None:
-            xbin=self.config.num_pixels_to_bin[1]
-        if ybin==None:
-            ybin=self.config.num_pixels_to_bin[0]
+        if xbin == None:
+            xbin = self.config.num_pixels_to_bin[0]
+        if ybin == None:
+            ybin = self.config.num_pixels_to_bin[1]
 
         # See input array shape
         array_shape=np.shape(onboard_processed_images.data)
 
         # Check if a number is a factor of input array dimensions.
-        if array_shape[0] % xbin != 0:
+        if array_shape[1] % xbin != 0:
             raise ValueError('xbin value should be an integer value and a factor of the array x dimension')
-        elif array_shape[1] % ybin != 0:
+        elif array_shape[0] % ybin != 0:
             raise ValueError('ybin value should be an integer value and a factor of the array y dimension')
         else:    
-            new_y_dim=int(array_shape[0]/ybin)
-            new_x_dim=int(array_shape[1]/xbin)
+            new_x_dim = int(array_shape[1]/xbin)
+            new_y_dim = int(array_shape[0]/ybin)
             
-            new_dimensions = [new_y_dim, new_x_dim] * u.pixel
+            new_dimensions = [new_x_dim, new_y_dim] * u.pixel
             
             onboard_processed_images = onboard_processed_images.resample(new_dimensions, method='nearest')
-            onboard_processed_images.meta['cdelt1'] = self.config.plate_scale.value # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
-            onboard_processed_images.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
+            onboard_processed_images.meta['cdelt1'] = self.config.plate_scale.value * xbin # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
+            onboard_processed_images.meta['cdelt2'] = self.config.plate_scale.value * ybin # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
 
         return onboard_processed_images
 
