@@ -3,8 +3,10 @@ This is the main wrapper for most/all(?) of the other instrument simulator relat
 """
 import os
 from glob import glob
+from datetime import datetime
 import astropy.units as u
 import sunpy.map
+import pandas as pd
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
 
 class Simulator:
@@ -14,6 +16,7 @@ class Simulator:
         self.radiance_maps = 'not yet loaded'
         self.hardware = 'not yet loaded'
         self.onboard_software = 'not yet loaded'
+        self.metadata = 'not yet loaded'
 
     def __read_config(self, config_filename):   
         return config_parser.Config(config_filename)
@@ -88,23 +91,50 @@ class Simulator:
 
 
     def __calculate_snr(self):
-        pass # implement calculate_snr
+        pass # TODO: implement calculate_snr
 
     
     def __complete_metadata(self):
-        pass
+        metadata_definition = self.__load_metadata_definition()
+        fits_var_names = metadata_definition['FITS variable name'].tolist()
+        fits_var_names = [name for name in fits_var_names if pd.notna(name)] # TODO Gets rid of the COMMENT lines but need to figure out a way to include them
+        map = self.onboard_processed_images
+        for fits_var_name in fits_var_names:
+            if fits_var_name not in map.meta:
+                typical_value = metadata_definition.loc[metadata_definition['FITS variable name'] == fits_var_name, 'typical value'].values[0]
+                if not pd.isna(typical_value):
+                    map.meta[fits_var_name] = typical_value
+        
+        # Populate metadata values
+        map.meta['LEVEL'] = '0.5'
+        map.meta['TIMESYS'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        map.meta['IMAGEW'] = map.dimensions[0].value
+        map.meta['IMAGEH'] = map.dimensions[1].value
+        map.meta['NBIN'] = self.config.num_pixels_to_bin
+        map.meta['DET_TEMP'] = self.config.detector_temperature.value
+        
+        # TODO: Figure out how to add comments after the value in fits output
+
+        self.onboard_processed_images = map
+        pass # TODO: implement complete_metadata
+    
+
+    def __load_metadata_definition(self):
+        return pd.read_csv(os.getenv('suncet_data') + '/metadata/' + self.config.base_metadata_filename)
+
 
     def __output_files(self):
         self.__write_fits()
         self.__write_binary()
         self.__output_snr()
-        pass # implement output_files
+        pass # TODO: implement output_files
     
 
     def __write_fits(self):
         path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
         filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '.fits' # TODO: will have to deal with unique filenames for different timestamps here
         map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
+        map.meta['FILENAME'] = filename
         
         map.save(path+filename, filetype='fits', overwrite=True)
         pass # TODO: implement write_fits()
