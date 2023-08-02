@@ -132,7 +132,7 @@ class Simulator:
 
     def __write_fits(self):
         path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
-        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '.fits' # TODO: will have to deal with unique filenames for different timestamps here
+        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + map.meta['DATE-OBS'] + '.fits'
         map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
         map.meta['FILENAME'] = filename
         
