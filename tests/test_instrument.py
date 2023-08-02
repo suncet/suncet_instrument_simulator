@@ -1,7 +1,11 @@
 import os
+import sys
 import astropy.units as u
 from suncet_instrument_simulator import config_parser, instrument, make_radiance_maps
 import setup_minimum_required_folders_files
+
+root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, root_directory)
 
 def test_instrument():
     if os.getenv('suncet_data') == None:
