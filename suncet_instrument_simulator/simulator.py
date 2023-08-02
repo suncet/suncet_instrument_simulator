@@ -107,7 +107,7 @@ class Simulator:
         
         # Populate metadata values
         map.meta['LEVEL'] = '0.5'
-        map.meta['TIMESYS'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        map.meta['TIMESYS'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
         map.meta['IMAGEW'] = map.dimensions[0].value
         map.meta['IMAGEH'] = map.dimensions[1].value
         map.meta['NBIN'] = self.config.num_pixels_to_bin
