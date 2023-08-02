@@ -5,6 +5,8 @@ from suncet_instrument_simulator import config_parser, instrument, make_radiance
 import setup_minimum_required_folders_files
 
 root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+print(root_directory)
+print(os.path.exists(root_directory + '/setup_minimum_required_folders_files.py'))
 sys.path.insert(0, root_directory)
 
 def test_instrument():
