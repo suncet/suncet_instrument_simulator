@@ -7,7 +7,7 @@ import ssl
 
 tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.txt?dl=1", 
                  "https://www.dropbox.com/s/f51fep2nu1vr7ai/euv_sim_300_171A.fits?dl=1", 
-                 "https://www.dropbox.com/scl/fi/kyyzrfla5su6831j0983e/SunCET_MapSeq_044.fits?rlkey=w6mfhov7pzmjljmmsvobqed4s&dl=1",
+                 "https://www.dropbox.com/scl/fi/24ckdxvwpyolfqp4120um/radiance_maps_044.fits?rlkey=pqna5na5lhj7dp3l1fe9mdq8k&dl=1",
                  "https://www.dropbox.com/scl/fi/rbgyhy7lmtftge9m8gaoq/em_map_200.sav?rlkey=4fg96y3edldbja6qy9jhp9bt0&dl=1",
                  "https://www.dropbox.com/s/z86h2h7l8pgbhnl/filter_entrance_transmission.csv?dl=1",
                  "https://www.dropbox.com/s/muclu9kncl7xyff/filter_focal_plane_transmission.csv?dl=1",
