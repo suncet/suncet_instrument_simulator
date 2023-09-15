@@ -1,6 +1,12 @@
 import os
+import sys
 import astropy.units as u
 from suncet_instrument_simulator import config_parser, instrument, make_radiance_maps
+
+root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+print(root_directory)
+print(os.path.exists(root_directory + '/setup_minimum_required_folders_files.py'))
+sys.path.insert(0, root_directory)
 import setup_minimum_required_folders_files
 
 def test_instrument():

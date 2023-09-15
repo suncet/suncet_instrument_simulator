@@ -3,8 +3,13 @@ This is the main wrapper for most/all(?) of the other instrument simulator relat
 """
 import os
 from glob import glob
+from datetime import datetime
 import astropy.units as u
+from astropy.io import fits
 import sunpy.map
+import pandas as pd
+import ast
+import numpy as np
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
 
 class Simulator:
@@ -14,6 +19,7 @@ class Simulator:
         self.radiance_maps = 'not yet loaded'
         self.hardware = 'not yet loaded'
         self.onboard_software = 'not yet loaded'
+        self.metadata = 'not yet loaded'
 
     def __read_config(self, config_filename):   
         return config_parser.Config(config_filename)
@@ -27,6 +33,7 @@ class Simulator:
         self.__simulate_detector()
         self.__apply_camera_software()
         self.__calculate_snr()
+        self.__complete_metadata()
         self.__output_files()
     
 
@@ -87,22 +94,71 @@ class Simulator:
 
 
     def __calculate_snr(self):
-        pass # implement calculate_snr
+        pass # TODO: implement calculate_snr
+
+    
+    def __complete_metadata(self):
+        metadata_definition = self.__load_metadata_definition()
+        map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
+
+        tmp = fits.PrimaryHDU()
+        header = tmp.header # A blank header with the required FITS keywords in the required order
+
+        for row in metadata_definition:
+            if 'COMMENT' in str(row['Full variable name']): 
+                header.set('COMMENT', value=row['Full variable name'].replace('COMMENT ', ''), after=len(header))  # line breaking comments for human readability
+            elif row['FITS variable name'] not in header: 
+                value = row['typical value']
+                if pd.isna(value): 
+                    value = 'N/A'
+                else: 
+                    try: 
+                        value = ast.literal_eval(value)
+                    except:
+                        pass
+                header.set(row['FITS variable name'], value=value, comment=row['Description'], after=len(header))
+
+        # Populate metadata defined by the config file or resultant from the simulation
+        header.set('NAXIS', value=3)
+        header.set('NAXIS1', value=1) # TODO: this is the number of images in the stack through time.. but that should always be collapsed to 1 by this point in the simulator. Need to reconcile. 
+        header.set('NAXIS2', value=map.dimensions[0].value)
+        header.set('NAXIS3', value=map.dimensions[1].value)
+        header.set('LEVEL', value='0.5')
+        header.set('TIMESYS', value=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'))
+        header.set('DATE-OBS', value=map.meta['DATE-OBS'])
+        header.set('IMAGEW', value=map.dimensions[0].value)
+        header.set('IMAGEH', value=map.dimensions[1].value)
+        header.set('NBIN', value=(self.config.num_pixels_to_bin[0] * self.config.num_pixels_to_bin[1]))
+        header.set('NBIN1', value=self.config.num_pixels_to_bin[0])
+        header.set('NBIN2', value=self.config.num_pixels_to_bin[1])
+        header.set('DET_TEMP', value=self.config.detector_temperature.value)
+        header.set('EXPTIME', map.meta['EXPTIME'])
+
+        hdu = fits.PrimaryHDU(map.data, header) # FIXME: the line above setting nan to None or '' doesn't work either. Need to figure out what FITS allows for empty. 
+        hdul = fits.HDUList(hdu)
+
+        self.fits = hdul
+        pass
+    
+
+    def __load_metadata_definition(self):
+        return pd.read_csv(os.getenv('suncet_data') + '/metadata/' + self.config.base_metadata_filename)
 
 
     def __output_files(self):
         self.__write_fits()
         self.__write_binary()
         self.__output_snr()
-        pass # implement output_files
+        pass # TODO: implement output_files
     
 
     def __write_fits(self):
         path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
-        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '.fits' # TODO: will have to deal with unique filenames for different timestamps here
-        map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
+        fits = self.fits
+        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + fits[0].header['DATE-OBS'] + '.fits'
+        fits[0].header.set('FILENAME', value=filename)
         
-        map.save(path+filename, filetype='fits', overwrite=True)
+        fits.writeto(path+filename, overwrite=True)
         pass # TODO: implement write_fits()
 
 
@@ -121,6 +177,13 @@ class Simulator:
 
     def __output_snr(self):
         pass # TODO: implement output_snr()
+
+
+# Convenience function primarily for debugging -- provide the data for the image, e.g., map.data or fits.data and this will plot with good scalings
+def __display_data(data): 
+    import matplotlib.pyplot as plt
+    plt.imshow(np.log10(np.clip(data, 0.1, None)))
+
 
 if __name__ == "__main__":
     simulator = Simulator()
