@@ -182,7 +182,7 @@ class MakeRadianceMaps:
     def __make_outgoing_filename(self):
         file_number_string = re.match('.*(\d\d\d).*', self.em_maps_filename).group(1)
         print(self.em_maps_filename)
-        map_file_out = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.map_directory_name + '/SunCET_MapSeq_' + file_number_string + '.fits'
+        map_file_out = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.map_directory_name + '/SunCET_Radiance_MapSeq_' + file_number_string + '.fits'
         return map_file_out
 
 if __name__ == "__main__":
