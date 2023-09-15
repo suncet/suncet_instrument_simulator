@@ -40,3 +40,4 @@ os.system('pip install -e .')
 # 2. Go to simulator.py and tell the IDE to run it in debug mode
 # 3. Code will execute until it reaches your breakpoint, at which point you can inspect variables, test your code, and test alternative implementations of code at the command line in the debugger
 # 4. Make any needed changes to your code, and repeat this process
+# 5. While developing git will not update the suncet_data file, therefore periodically run "python setup_minimum_required_folders_files.py"
