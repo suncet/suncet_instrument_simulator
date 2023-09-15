@@ -19,6 +19,9 @@ class Config:
         self.apply_psf = config['behavior'].getboolean('apply_psf')
         self.apply_scattered_light_psf = config['behavior'].getboolean('apply_scattered_light_psf')
         self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
+        self.timesteps_to_process = json.loads(config.get('behavior', 'timesteps_to_process'))
+        self.model_directory_name = config['behavior']['model_directory_name']
+        self.map_directory_name = config['behavior']['map_directory_name']
 
         # limits
         self.wavelength_limits = json.loads(config.get('limits', 'wavelength_limits')) * u.Angstrom

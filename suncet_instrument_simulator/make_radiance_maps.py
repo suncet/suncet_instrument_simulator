@@ -7,22 +7,32 @@ import scipy.io
 from glob import glob
 import sunpy.map
 from astropy.io import fits
+import re
+import warnings
 
 class MakeRadianceMaps:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, config = None):
+        if config is None:
+            config_filename = os.getcwd() + '/config_files/config_default.ini'
+            self.config = self.__read_config(config_filename)
+        else:
+            self.config = config
 
 
-    def run(self, save=False):
+    def run(self):
         self.emiss = self.__get_emissivity()
-        self.em_map = self.__read_em_map()
-        self.logt_axis, self.native_wave_axis, self.wave_axis = self.__parameter_setup()
-        self.raw_radiance = self.__compute_radiance()
-        self.map_seq = self.__construct_maps()
-        if save:
-            self.__save_map_sequence()
-        return self.map_seq
+        self.files = self.__parse_filenames()
 
+        if len(self.files) == 0:
+            warnings.warn('No files to process in specified range. Stopping.')
+            return
+
+        for self.em_maps_filename in self.files:
+            self.em_map = self.__read_em_map()
+            self.logt_axis, self.native_wave_axis, self.wave_axis = self.__parameter_setup()
+            self.raw_radiance = self.__compute_radiance()
+            self.map_seq = self.__construct_maps()
+            self.__save_map_sequence()
 
     def __read_config(self, config_filename):
         return config_parser.Config(config_filename)
@@ -36,17 +46,31 @@ class MakeRadianceMaps:
         else:
             raise ValueError('Emissivity file not found. Make sure that your emissivity file is saved as {}'.format(expected_filename))
 
+    def __parse_filenames(self):
+        expected_em_filenames = os.getenv('suncet_data') + self.config.model_directory_name + 'em_map_*.sav'
+        em_maps_filename = glob(expected_em_filenames)
+        file_number_strings = [re.match('.*(\d\d\d).*', filename).group(1) for filename in em_maps_filename]
+        file_numbers = np.array(list(map(int, file_number_strings)))
+        n_files_to_process = np.floor(
+            (self.config.timesteps_to_process[1] + 1 - self.config.timesteps_to_process[0]) / self.config.timesteps_to_process[2])
+
+        files_to_process = []
+        for n, number in enumerate(range(self.config.timesteps_to_process[0], self.config.timesteps_to_process[1] + 1, self.config.timesteps_to_process[2])):
+            result = np.where(file_numbers == number)[0]
+            if result.size != 0:
+                files_to_process.append(result[0])
+        if len(files_to_process) != 0:
+            filenames = np.take(em_maps_filename, files_to_process)
+        else:
+            filenames = []
+        return filenames
 
     def __read_em_map(self):
-        # TODO: Make this work on more than one file
-        expected_em_filenames = os.getenv('suncet_data') + '/mhd/bright_fast/em_maps/em_map_240.sav'
-        em_maps_filenames = glob(expected_em_filenames)
-        if len(em_maps_filenames) > 0:
-            em_data = scipy.io.readsav(em_maps_filenames[0])
+        if len(self.em_maps_filename) > 0:
+            em_data = scipy.io.readsav(self.em_maps_filename)
             return em_data.em_maps_plus * 10**26. # EM Maps have units of 10**26 cm^-5
         else:
             raise ValueError('EM maps not found. Make sure that your EM maps are saved as {}'.format(expected_em_filenames))
-
 
     def __parameter_setup(self):
         wavelength_units = self.config.wavelength_limits.unit
@@ -90,6 +114,7 @@ class MakeRadianceMaps:
 
 
     def __make_header_template(self):
+        # TODO: figure out what format SunPy maps want the solar radius keyword
         header = {}
         header['DATE-OBS'] = '2023-02-14T17:00:00.000'
         header['CTYPE1'] = 'HPLN-TAN'
@@ -128,7 +153,7 @@ class MakeRadianceMaps:
         # compile maps into a Map Sequence
         for n in range(map_dims[0]):
             header = header_template
-            header['WAVELNTH'] = self.wave_axis[n] # TODO: Dan: Figure out how to get the units in here so that it doesn't crash when saving to disk (related to above TODO)
+            header['WAVELNTH'] = self.wave_axis[n].value # TODO: Make this more elegant
             map_out = sunpy.map.Map(self.raw_radiance[n, :, :], header)
             if n == 0:
                 map_seq = sunpy.map.MapSequence(map_out)
@@ -138,6 +163,7 @@ class MakeRadianceMaps:
 
 
     def __save_map_sequence(self):
+        map_file_out = self.__make_outgoing_filename()
         for n, map in enumerate(self.map_seq):
             if n == 0:
                 hdu = fits.PrimaryHDU(map.data, map.fits_header)
@@ -145,11 +171,21 @@ class MakeRadianceMaps:
             else:
                 hdu = fits.ImageHDU(map.data, map.fits_header)
                 hdul.append(hdu)
-        # TODO: Make this work on more than one file
-        hdul.writeto('SunCET_MapSeq.fits')
+        print('Saving Map: ' + map_file_out)
+        try:
+            hdul.writeto(map_file_out)
+        except OSError:
+            error_msg = "Couldn't write {}. Might be because one with the same name already existed.".format(map_file_out)
+            warnings.warn(error_msg)
 
+
+    def __make_outgoing_filename(self):
+        file_number_string = re.match('.*(\d\d\d).*', self.em_maps_filename).group(1)
+        print(self.em_maps_filename)
+        map_file_out = os.getenv('suncet_data') + self.config.map_directory_name + '/SunCET_MapSeq_' + file_number_string + '.fits'
+        return map_file_out
 
 if __name__ == "__main__":
     radiance_map = MakeRadianceMaps()
-    radiance_map.run(save = True)
+    radiance_map.run()
 
