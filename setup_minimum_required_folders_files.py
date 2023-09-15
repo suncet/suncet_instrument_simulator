@@ -44,7 +44,7 @@ def run():
         filename = get_filename_from_url(url)
         if filename.endswith('fullemiss.nc'):
             filename = emissivity_path / filename
-        elif filename.startswith('SunCET_MapSeq_'):
+        elif filename.startswith('radiance_maps_'):
             filename = rendered_path / filename
         elif filename.startswith('em_map_'):
             filename = em_path / filename

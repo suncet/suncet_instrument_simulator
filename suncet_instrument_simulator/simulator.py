@@ -56,7 +56,7 @@ class Simulator:
 
     
     def __load_radiance_maps(self):
-        filenames = glob(os.getenv('suncet_data') + 'mhd/bright_fast/rendered_euv_maps/SunCET_MapSeq_044.fits')
+        filenames = glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_044.fits')
         self.radiance_maps = sunpy.map.Map(filenames, sequence=True)
 
 
