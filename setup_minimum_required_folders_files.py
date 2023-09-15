@@ -20,7 +20,7 @@ def run():
     
     emissivity_path = Path(os.getenv('suncet_data') + '/ancillary/emissivity')
     emissivity_path.mkdir(parents=True, exist_ok=True)
-    rendered_path = Path(os.getenv('suncet_data') + '/mhd/dimmest/rendered_euv_maps')
+    rendered_path = Path(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps')
     rendered_path.mkdir(parents=True, exist_ok=True)
     em_path = Path(os.getenv('suncet_data') + '/mhd/bright_fast/em_maps')
     em_path.mkdir(parents=True, exist_ok=True)
