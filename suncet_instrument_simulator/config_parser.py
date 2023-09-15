@@ -21,6 +21,7 @@ class Config:
         self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
         self.timesteps_to_process = json.loads(config.get('behavior', 'timesteps_to_process'))
         self.model_directory_name = config['behavior']['model_directory_name']
+        self.em_directory_name = config['behavior']['em_directory_name']
         self.map_directory_name = config['behavior']['map_directory_name']
 
         # limits

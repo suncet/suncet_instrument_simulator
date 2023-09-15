@@ -47,7 +47,7 @@ class MakeRadianceMaps:
             raise ValueError('Emissivity file not found. Make sure that your emissivity file is saved as {}'.format(expected_filename))
 
     def __parse_filenames(self):
-        expected_em_filenames = os.getenv('suncet_data') + self.config.model_directory_name + 'em_map_*.sav'
+        expected_em_filenames = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.em_directory_name + 'em_map_*.sav'
         em_maps_filename = glob(expected_em_filenames)
         file_number_strings = [re.match('.*(\d\d\d).*', filename).group(1) for filename in em_maps_filename]
         file_numbers = np.array(list(map(int, file_number_strings)))
@@ -182,7 +182,7 @@ class MakeRadianceMaps:
     def __make_outgoing_filename(self):
         file_number_string = re.match('.*(\d\d\d).*', self.em_maps_filename).group(1)
         print(self.em_maps_filename)
-        map_file_out = os.getenv('suncet_data') + self.config.map_directory_name + '/SunCET_MapSeq_' + file_number_string + '.fits'
+        map_file_out = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.map_directory_name + '/SunCET_MapSeq_' + file_number_string + '.fits'
         return map_file_out
 
 if __name__ == "__main__":
