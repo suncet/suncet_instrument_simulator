@@ -66,11 +66,9 @@ class MakeRadianceMaps:
         return filenames
 
     def __read_em_map(self):
-        if len(self.em_maps_filename) > 0:
-            em_data = scipy.io.readsav(self.em_maps_filename)
-            return em_data.em_maps_plus * 10**26. # EM Maps have units of 10**26 cm^-5
-        else:
-            raise ValueError('EM maps not found. Make sure that your EM maps are saved as {}'.format(expected_em_filenames))
+        len(self.em_maps_filename) > 0:
+        em_data = scipy.io.readsav(self.em_maps_filename)
+        return em_data.em_maps_plus * 10**26. # EM Maps have units of 10**26 cm^-5
 
     def __parameter_setup(self):
         wavelength_units = self.config.wavelength_limits.unit
