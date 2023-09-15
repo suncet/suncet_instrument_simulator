@@ -8,7 +8,7 @@ import ssl
 tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.txt?dl=1", 
                  "https://www.dropbox.com/s/f51fep2nu1vr7ai/euv_sim_300_171A.fits?dl=1", 
                  "https://www.dropbox.com/s/5tkfvphczs0a929/euv_sim_300_193A.fits?dl=1",
-                 "https://www.dropbox.com/s/dbdbaheav9akbwp/em_map_240.sav?dl=1",
+                 "https://www.dropbox.com/scl/fi/rbgyhy7lmtftge9m8gaoq/em_map_200.sav?rlkey=4fg96y3edldbja6qy9jhp9bt0&dl=1",
                  "https://www.dropbox.com/s/z86h2h7l8pgbhnl/filter_entrance_transmission.csv?dl=1",
                  "https://www.dropbox.com/s/muclu9kncl7xyff/filter_focal_plane_transmission.csv?dl=1",
                  "https://www.dropbox.com/s/tvqt8ybipa1bm8z/aia_V9_fullemiss.nc?dl=1", 
