@@ -66,7 +66,6 @@ class MakeRadianceMaps:
         return filenames
 
     def __read_em_map(self):
-        len(self.em_maps_filename) > 0:
         em_data = scipy.io.readsav(self.em_maps_filename)
         return em_data.em_maps_plus * 10**26. # EM Maps have units of 10**26 cm^-5
 
