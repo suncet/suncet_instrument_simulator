@@ -89,7 +89,7 @@ class Simulator:
         else: 
             self.onboard_processed_images = self.detector_images
         self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
-        self.onboard_processed_images = self.onboard_software.median_image_stack(self.onboard_processed_images)
+        self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
 
 
