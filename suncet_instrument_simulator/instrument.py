@@ -76,7 +76,7 @@ class Hardware:
 
     
     def __load_quantum_efficiency_curve(self):
-        df = read_csv(os.getenv('suncet_data') + 'quantum_efficiency/' + self.config.quantum_efficiency_filename, skiprows=1)
+        df = read_csv(os.getenv('suncet_data') + '/quantum_efficiency/' + self.config.quantum_efficiency_filename, skiprows=1)
         df.columns = ['wavelength [Å]', 'qe']
         return df
 
@@ -103,7 +103,7 @@ class Hardware:
 
 
     def __compute_plate_scale(): 
-        pass # TODO: is this needed? Even if not, would it be useful to include some computed quantities as instance variables just for reference?
+        pass # TODO: is this needed? Even if not, would it be useful to include some computed quantities as instance variables just for reference or for the metadata/header?
 
 
     def apply_psf(self, radiance_maps):
@@ -336,15 +336,15 @@ class OnboardSoftware:
         pass # TODO: implement apply_jitter (will be different for the short exposure central disk and long exposure off-disk)
 
     
-    def median_image_stack(self, onboard_processed_images):
-        # TODO: handle the median stacking
+    def filter_out_particle_hits(self, onboard_processed_images):
+        # TODO: Implement the min/max method Alan has in FPGA already, applied to the stack of images input
         
         map1 = onboard_processed_images[0]
         map2 = onboard_processed_images[1]
         composite_map = self.__composite_maps(map1, map2)
         
         return composite_map # TODO: figure out if this needs to be an array through time or not
-        pass # TODO: impelement median_image_stack (returns a composite images merging the on- and off-disk, and spanning time up to the duration corresponding to how many images to stack (e.g., four 15-second exposures stacked for median will result in a 1-minute composite))
+        pass # TODO: impelement filter_out_particle_hits (returns a composite images merging the on- and off-disk, and spanning time up to the duration corresponding to how many images to stack (e.g., four 15-second exposures stacked for median will result in a 1-minute composite))
     
     
     def __composite_maps(self, map1, map2):
