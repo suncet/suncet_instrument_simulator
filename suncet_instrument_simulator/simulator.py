@@ -104,7 +104,7 @@ class Simulator:
         tmp = fits.PrimaryHDU()
         header = tmp.header # A blank header with the required FITS keywords in the required order
 
-        for row in metadata_definition:
+        for i, row in metadata_definition.iterrows():
             if 'COMMENT' in str(row['Full variable name']): 
                 header.set('COMMENT', value=row['Full variable name'].replace('COMMENT ', ''), after=len(header))  # line breaking comments for human readability
             elif row['FITS variable name'] not in header: 
