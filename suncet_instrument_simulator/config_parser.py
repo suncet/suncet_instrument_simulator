@@ -61,8 +61,9 @@ class Config:
         self.inner_fov_circle_radius = config['shdr'].getfloat('inner_fov_circle_radius') * u.solRad
         self.jitter = config['shdr'].getfloat('jitter') * u.arcsec / u.second
 
-        # format
-        self.base_metadata_filename = config['format']['base_metadata_filename']
+        # structure
+        self.base_metadata_filename = config['structure']['base_metadata_filename']
+        self.model_data_folder = config['structure']['model_data_folder']
 
 
 
