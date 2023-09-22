@@ -9,6 +9,7 @@ import sunpy.map
 from astropy.io import fits
 import re
 import warnings
+import astropy.units as u
 
 class MakeRadianceMaps:
     def __init__(self, config = None):
@@ -137,6 +138,7 @@ class MakeRadianceMaps:
         header['HGLT_OBS'] = 0.0
         header['HGLN_OBS'] = 0.0
         header['DSUN_OBS'] = 149597870691
+        header['RSUN'] = 970.
         header['TELESCOP'] = 'SunCET'
         header['INSTRUME'] = 'SunCET'
         header['EXPTIME'] = 1.0
@@ -159,17 +161,25 @@ class MakeRadianceMaps:
                 map_seq.maps.append(map_out)
         return map_seq
 
+    def __solve_solar_params(self, header = None):
+        date = header['DATE-OBS']
+        solar_distance = int(sunpy.coordinates.sun.earth_distance(time = date).to(u.m).value)
+        solar_radius = sunpy.coordinates.sun.angular_radius(t=date)
+        return (solar_distance, solar_radius)
 
     def __save_map_sequence(self):
         map_file_out = self.__make_outgoing_filename()
         for n, map in enumerate(self.map_seq):
+            solar_params = self.__solve_solar_params(header=map.fits_header)
             if n == 0:
                 hdu = fits.PrimaryHDU(map.data, map.fits_header)
-                map.fits_header['WAVELNTH'] = (map.fits_header['WAVELNTH'], '[Angstrom]')
+                hdu.header['DSUN_OBS'] = solar_params[0]
+                hdu.header['RSUN'] = solar_params[1].value
                 hdul = fits.HDUList(hdu)
             else:
                 hdu = fits.ImageHDU(map.data, map.fits_header)
-                map.fits_header['WAVELNTH'] = (map.fits_header['WAVELNTH'], '[Angstrom]')
+                hdu.header['DSUN_OBS'] = solar_params[0]
+                hdu.header['RSUN'] = solar_params[1].value
                 hdul.append(hdu)
         print('Saving Map: ' + map_file_out)
         try:
