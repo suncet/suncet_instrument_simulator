@@ -56,8 +56,21 @@ class Simulator:
 
     
     def __load_radiance_maps(self):
-        filenames = glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_044.fits')
-        self.radiance_maps = sunpy.map.Map(filenames, sequence=True)
+        maps_by_index_and_wavelength = {}
+        filenames = glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_04*.fits')
+        for filename in filenames:
+            index = os.path.basename(filename).split('_')[-1].replace('.fits', '')
+            maps = sunpy.map.Map(filename)
+
+            if index not in maps_by_index_and_wavelength:
+                maps_by_index_and_wavelength[index] = {}
+
+            for map in maps:
+                wavelength = str(map.wavelength)
+                maps_by_index_and_wavelength[index][wavelength] = map
+            
+        
+        self.radiance_maps = maps_by_index_and_wavelength
 
 
     def __simulate_noise(self):

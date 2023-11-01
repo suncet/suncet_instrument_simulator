@@ -12,7 +12,6 @@ from astropy import constants as const
 import sunpy.map
 from sunpy.coordinates import frames
 from suncet_instrument_simulator import config_parser # This is just for running as a script -- should delete when done testing
-from scipy.io import readsav # TODO: remove this temporary hack once we have radiance map files in non-IDL-saveset format
 
 class Hardware: 
     def __init__(self, config):
@@ -27,13 +26,17 @@ class Hardware:
     def store_target_wavelengths(self, radiance_maps): # Will interpolate/calculate any subsequent wavelength-dependent quantities to this "target" wavelength array
         wavelengths = []
         wavelength_unit = []
-        for map in radiance_maps:
-            wavelengths.append(map.wavelength.value)
-            if len(wavelength_unit) > 0: 
-                if map.wavelength.unit != wavelength_unit[0]:
-                    raise ValueError('The wavelengths in the radiance maps do not match each other. This is dangerous so please fix it.')
-            wavelength_unit.append(map.wavelength.unit)
-        self.wavelengths = wavelengths * wavelength_unit[0]
+        if self.__is_nested_time_and_wavelength(radiance_maps):
+            radiance_maps = next(iter(radiance_maps.values()))
+        values = [u.Quantity(key).value for key in radiance_maps.keys()]
+        unit = u.Quantity(list(radiance_maps.keys())[0]).unit
+        self.wavelengths = u.Quantity(values, unit=unit)
+
+
+    def __is_nested_time_and_wavelength(self, d):
+        if not isinstance(d, dict):
+            return False
+        return any(isinstance(value, dict) for value in d.values())
 
 
     def compute_effective_area(self):
@@ -42,7 +45,9 @@ class Hardware:
         filter_transmission = self.__interpolate_filter_transmission()
         quantum_efficiency = self.__interpolate_quantum_efficiency()
         
-        self.effective_area = geometric_area * mirror_reflectivity * filter_transmission * quantum_efficiency
+        wavelength_strings = [f"{wavelength.value} {wavelength.unit}" for wavelength in self.wavelengths]
+        effective_area = geometric_area * mirror_reflectivity * filter_transmission * quantum_efficiency
+        self.effective_area = {wavelength_str: a_eff for wavelength_str, a_eff in zip(wavelength_strings, effective_area)}
 
 
     def __interpolate_mirror_coating_reflectivity(self):
@@ -82,24 +87,31 @@ class Hardware:
 
 
     def extract_fov(self, radiance_maps):
-        fov_half_angles = self.config.fov / 2.0
+        fov_half_angles = self.config.fov / 4.0
 
         # TODO: Raise warning if instrument FOV > model FOV
 
-        return sunpy.map.MapSequence([map.submap(top_right=SkyCoord(fov_half_angles[0], fov_half_angles[1], frame=map.coordinate_frame), 
-                                                 bottom_left=SkyCoord(-fov_half_angles[0], -fov_half_angles[1], frame=map.coordinate_frame)) 
-                                      for map in radiance_maps])
+        radiance_maps_new_fov = {}
+        for timestep, radiance_maps_by_wavelength in radiance_maps.items():
+            radiance_maps_new_fov[timestep] = {}
+            for wavelength, map in radiance_maps_by_wavelength.items():
+                radiance_maps_new_fov[timestep][wavelength] = map.submap(top_right=SkyCoord(fov_half_angles[0], fov_half_angles[1], frame=map.coordinate_frame), 
+                                                                         bottom_left=SkyCoord(-fov_half_angles[0], -fov_half_angles[1], frame=map.coordinate_frame))
+        radiance_maps.update(radiance_maps_new_fov)
+        return radiance_maps
     
 
     def interpolate_spatial_resolution(self, radiance_maps):
-        map_list = []
-        for map in radiance_maps:
+        radiance_maps_new_resolution = {}
+        for timestep, radiance_maps_by_wavelength in radiance_maps.items():
+            radiance_maps_new_resolution[timestep] = {}
+        for wavelength, map in radiance_maps_by_wavelength.items():
             resampled_map = map.resample(self.config.image_dimensions, method='linear')  * ((self.config.plate_scale / map.scale[0]).value)**2
             resampled_map.data[resampled_map.data < 0] = 0 # Clip any negative numbers that result from the interpolation above -- bottom out at 0
             resampled_map.meta['cdelt1'] = self.config.plate_scale.value # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
             resampled_map.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
-            map_list.append(resampled_map)
-        return sunpy.map.MapSequence(map_list)
+            radiance_maps_new_resolution[timestep][wavelength] = resampled_map
+        return radiance_maps_new_resolution
 
 
     def __compute_plate_scale(): 
@@ -139,11 +151,12 @@ class Hardware:
         TODO:apply size test for maps and self.effective_area
 
         '''
-        maps = []
-        for i, map in enumerate(radiance_maps):
-            maps.append(map * self.effective_area[i])
-        return sunpy.map.MapSequence(maps)
-        
+        radiance_maps_scaled_by_effective_area = {}
+        for timestep, radiance_maps_by_wavelength in radiance_maps.items():
+            radiance_maps_scaled_by_effective_area[timestep] = {}
+        for wavelength, map in radiance_maps_by_wavelength.items():
+            radiance_maps_scaled_by_effective_area[timestep][wavelength] = map * self.effective_area[wavelength]
+        return radiance_maps_scaled_by_effective_area
 
     
     def apply_exposure_times(self, radiance_maps):
