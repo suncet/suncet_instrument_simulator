@@ -24,8 +24,6 @@ class Hardware:
 
 
     def store_target_wavelengths(self, radiance_maps): # Will interpolate/calculate any subsequent wavelength-dependent quantities to this "target" wavelength array
-        wavelengths = []
-        wavelength_unit = []
         if self.__is_nested_time_and_wavelength(radiance_maps):
             radiance_maps = next(iter(radiance_maps.values()))
         values = [u.Quantity(key).value for key in radiance_maps.keys()]
@@ -105,12 +103,12 @@ class Hardware:
         radiance_maps_new_resolution = {}
         for timestep, radiance_maps_by_wavelength in radiance_maps.items():
             radiance_maps_new_resolution[timestep] = {}
-        for wavelength, map in radiance_maps_by_wavelength.items():
-            resampled_map = map.resample(self.config.image_dimensions, method='linear')  * ((self.config.plate_scale / map.scale[0]).value)**2
-            resampled_map.data[resampled_map.data < 0] = 0 # Clip any negative numbers that result from the interpolation above -- bottom out at 0
-            resampled_map.meta['cdelt1'] = self.config.plate_scale.value # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
-            resampled_map.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
-            radiance_maps_new_resolution[timestep][wavelength] = resampled_map
+            for wavelength, map in radiance_maps_by_wavelength.items():
+                resampled_map = map.resample(self.config.image_dimensions, method='linear')  * ((self.config.plate_scale / map.scale[0]).value)**2
+                resampled_map.data[resampled_map.data < 0] = 0 # Clip any negative numbers that result from the interpolation above -- bottom out at 0
+                resampled_map.meta['cdelt1'] = self.config.plate_scale.value # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
+                resampled_map.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
+                radiance_maps_new_resolution[timestep][wavelength] = resampled_map
         return radiance_maps_new_resolution
 
 
@@ -154,8 +152,8 @@ class Hardware:
         radiance_maps_scaled_by_effective_area = {}
         for timestep, radiance_maps_by_wavelength in radiance_maps.items():
             radiance_maps_scaled_by_effective_area[timestep] = {}
-        for wavelength, map in radiance_maps_by_wavelength.items():
-            radiance_maps_scaled_by_effective_area[timestep][wavelength] = map * self.effective_area[wavelength]
+            for wavelength, map in radiance_maps_by_wavelength.items():
+                radiance_maps_scaled_by_effective_area[timestep][wavelength] = map * self.effective_area[wavelength]
         return radiance_maps_scaled_by_effective_area
 
     
@@ -187,17 +185,19 @@ class Hardware:
         ---
         TODO: Test to see if the first return is long, and the secong short
         '''
-        long_exposure_map_list = []
-        short_exposure_map_list = []
+        radiance_maps_short = {}
+        radiance_maps_long = {}
+        for timestep, radiance_maps_by_wavelength in radiance_maps.items():
+            radiance_maps_short[timestep] = {}
+            radiance_maps_long[timestep] = {}
+            for wavelength, map in radiance_maps_by_wavelength.items():
+                map_short = self.__set_exposure_time(map, self.config.exposure_time_short)
+                radiance_maps_short[timestep][wavelength] = map_short * self.config.exposure_time_short
 
-        for map in radiance_maps: 
-            map = self.__set_exposure_time(map, self.config.exposure_time_long)
-            long_exposure_map_list.append(map * self.config.exposure_time_long)
-
-            map = self.__set_exposure_time(map, self.config.exposure_time_short)
-            short_exposure_map_list.append(map * self.config.exposure_time_short)
+                map_long = self.__set_exposure_time(map, self.config.exposure_time_long)
+                radiance_maps_long[timestep][wavelength] = map_long * self.config.exposure_time_long
         
-        return sunpy.map.MapSequence(long_exposure_map_list, short_exposure_map_list)
+        return {"short exposure": radiance_maps_short, "long exposure": radiance_maps_long}
     
 
     def __set_exposure_time(self, sunpy_map, new_exposure_time):
