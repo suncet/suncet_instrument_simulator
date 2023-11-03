@@ -51,6 +51,7 @@ class Config:
         self.fraction_dead_pixels = config['detector'].getfloat('fraction_dead_pixels')
         self.fraction_hot_pixels = config['detector'].getfloat('fraction_hot_pixels')
         self.spike_rate = config['detector'].getfloat('spike_rate') / u.second / u.cm**2
+        self.fano_factor = config['detector'].getfloat('fano_factor') * u.dimensionless_unscaled
 
         # shdr
         self.exposure_time_short = config['shdr'].getfloat('exposure_time_short') * u.second

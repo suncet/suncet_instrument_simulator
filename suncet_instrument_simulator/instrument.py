@@ -1,4 +1,5 @@
 import os
+import copy
 import warnings
 from glob import glob
 import numpy as np
@@ -211,52 +212,59 @@ class Hardware:
 
 
     def apply_photon_shot_noise(self, radiance_maps):
-        map_list = []
-        for map in radiance_maps:
-            noisy_photons = np.random.poisson(lam=map.data)
-            map_list.append(sunpy.map.Map(noisy_photons, map.meta))
-        
-        return sunpy.map.MapSequence(map_list)
+        return self.__apply_function_to_leaves(radiance_maps, self.__apply_poisson)
+    
+    
+    def __apply_function_to_leaves(self, orig_dict, func, **kwargs):
+        new_dict = {}
+        for key, value in orig_dict.items():
+            if isinstance(value, dict):
+                new_dict[key] = self.__apply_function_to_leaves(value, func, **kwargs)
+            else:
+                new_dict[key] = func(value, **kwargs)
+        return new_dict
+
+    
+    def __apply_poisson(self, map):
+        noisy_photons = np.random.poisson(lam=map.data)
+        return sunpy.map.Map(noisy_photons, map.meta)
 
 
     def convert_to_electrons(self, radiance_maps, apply_noise=True):
-        radiance_maps_long, radiance_maps_short = self.__filter_mapsequence_by_exposure(radiance_maps)
-
-        detector_image_long = self.__convert_to_electrons(radiance_maps_long, apply_noise=apply_noise)
-        detector_image_short = self.__convert_to_electrons(radiance_maps_short, apply_noise=apply_noise)
-        return sunpy.map.MapSequence(detector_image_long, detector_image_short)
-
-
-    def __filter_mapsequence_by_exposure(self, mapsequence):
-        short_exposures = [m for m in mapsequence if m.exposure_time.value == self.config.exposure_time_short.value]
-        long_exposures = [m for m in mapsequence if m.exposure_time.value == self.config.exposure_time_long.value]
-        return sunpy.map.MapSequence(long_exposures), sunpy.map.MapSequence(short_exposures)
-    
-
-    def __convert_to_electrons(self, radiance_maps, apply_noise=True):
         quantum_yield = self.__compute_quantum_yields()
-        detector_image = radiance_maps[0].data * 0 # empty array
-        for i, map in enumerate(radiance_maps): 
-            #detector_images.append(map * quantum_yield[i]) # TODO: Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
-            quantum_yield_units_hacked = quantum_yield[i] * u.count/u.electron
-            detector_image = detector_image + (map.data * map.unit) * quantum_yield_units_hacked # TODO: Should really be in electrons, not counts
-        detector_image = self.__update_map_meta(detector_image, radiance_maps[0].meta, quantum_yield_units_hacked) # TODO: Update to "quantum_yield" once above issue resolved
+        quantum_yield_units_hacked = 1 * u.count/u.electron
+        for exposure_type in ['short exposure', 'long exposure']:
+            for timestep in radiance_maps[exposure_type]:
+                first_map = self.__get_any_map(radiance_maps[exposure_type][timestep])
+                detector_image = np.zeros_like(first_map.data) * first_map.unit * quantum_yield.unit * quantum_yield_units_hacked
 
-        if apply_noise:
-            detector_image = self.__apply_fano_noise(detector_image)
+                for i, (wavelength, map) in enumerate(radiance_maps[exposure_type][timestep].items()):
+                    detector_image += (map.data * map.unit) * (quantum_yield[i] * quantum_yield_units_hacked) # TODO: Should really be in electrons, not counts. Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
+                
+                if apply_noise:
+                    detector_image = self.__apply_fano_noise(detector_image)
 
-        detector_image = self.__clip_at_full_well(detector_image)
-        return detector_image
+                detector_image = self.__clip_at_full_well(detector_image)
+                
+                updated_meta = self.__update_map_meta(first_map.meta)
+                new_map = sunpy.map.Map(detector_image, updated_meta)
+                radiance_maps[exposure_type][timestep] = new_map
+
+        return radiance_maps
     
 
-    def __update_map_meta(self, detector_image, meta, quantum_yield):
+    def __get_any_map(self, nested_dict):
+        for key, value in nested_dict.items():
+            if isinstance(value, dict):
+                return self.__get_any_map(value)
+            else:
+                return value
+
+
+    def __update_map_meta(self, meta):
         meta['wavelnth'] = self.wavelengths.mean().value
         meta['waveunit'] = self.wavelengths.mean().unit.to_string()
-        
-        map = sunpy.map.Map(detector_image, meta)
-
-        map = map * (1 * quantum_yield.unit)
-        return map
+        return meta
 
 
     def __compute_quantum_yields(self):
@@ -265,10 +273,7 @@ class Hardware:
 
 
     def __apply_fano_noise(self, detector_image):
-        fano_factor = 0.1190 # Based on material, silicon in this case, and fairly insensitive to wavelength. This number comes from Rodrigues+ 2021 (https://doi.org/10.1016/j.nima.2021.165511)
-        header = detector_image.meta
-        detector_image = np.random.poisson(lam=detector_image.data) * np.sqrt(fano_factor)
-        return sunpy.map.Map(detector_image, header)
+        return np.random.poisson(lam=detector_image.data) * np.sqrt(self.config.fano_factor)
 
 
     def __clip_at_full_well(self, detector_image):

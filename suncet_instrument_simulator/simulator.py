@@ -57,7 +57,7 @@ class Simulator:
     
     def __load_radiance_maps(self):
         maps_by_index_and_wavelength = {}
-        filenames = glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_04*.fits')
+        filenames = sorted(glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_0[4][0-2].fits'))
         for filename in filenames:
             index = os.path.basename(filename).split('_')[-1].replace('.fits', '')
             maps = sunpy.map.Map(filename)
@@ -137,7 +137,7 @@ class Simulator:
         header.set('NAXIS2', value=map.dimensions[0].value)
         header.set('NAXIS3', value=map.dimensions[1].value)
         header.set('LEVEL', value='0.5')
-        header.set('TIMESYS', value=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'))
+        header.set('TIMESYS', value='UTC')
         header.set('DATE-OBS', value=map.meta['DATE-OBS'])
         header.set('IMAGEW', value=map.dimensions[0].value)
         header.set('IMAGEH', value=map.dimensions[1].value)
