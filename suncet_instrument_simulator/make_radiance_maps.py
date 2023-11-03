@@ -114,6 +114,7 @@ class MakeRadianceMaps:
     def __make_header_template(self):
         # TODO: figure out what format SunPy maps want the solar radius keyword
         header = {}
+        header['LONGSTRN'] = 'OGIP 1.0'
         header['DATE-OBS'] = '2023-02-14T17:00:00.000'
         header['CTYPE1'] = 'HPLN-TAN'
         header['CTYPE2'] = 'HPLT-TAN'
