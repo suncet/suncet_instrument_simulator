@@ -303,8 +303,8 @@ class Hardware:
 
     
     def convert_to_dn(self, detector_images):
-        return sunpy.map.MapSequence([map * (self.config.detector_gain * u.dN/u.dn * u.electron/u.count) # TODO: Remove all these unit gymnastics once sunpy issue has been resolved https://github.com/sunpy/sunpy/issues/6823
-                                      for map in detector_images])
+        gain_factor = self.config.detector_gain * u.dN/u.dn * u.electron/u.count
+        return self.__apply_function_to_leaves(detector_images, lambda x: x * gain_factor)
     
         # TODO: Clip to DN max (Alan set the gain so that pixel full well [33k] electrons is 90% of the ADC dynamic range); therefore, if the image has already been clipped to full well, this clipping function shouldn't ever do anything
         #return sunpy.map.MapSequence([map *  self.config.detector_gain # TODO: This is all that'll be needed once TODO above is addressed
