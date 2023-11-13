@@ -373,7 +373,9 @@ class OnboardSoftware:
         return onboard_processed_images
     
     
-    def create_composite(self, map1, map2):
+    def create_composite(self, onboard_processed_images):
+        map1 = onboard_processed_images['short exposure']
+        map2 = onboard_processed_images['long exposure']
         solar_disk_center, solar_disk_radius = self.__get_solar_disk_center_and_radius_in_pixels(map1)
 
         # Create a boolean mask where True values represent the solar ~disk area

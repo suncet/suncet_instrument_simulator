@@ -103,6 +103,7 @@ class Simulator:
             self.onboard_processed_images = self.detector_images
         self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
+        self.onboard_processed_images = self.onboard_software.create_composite(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
 
 
@@ -172,7 +173,7 @@ class Simulator:
         fits[0].header.set('FILENAME', value=filename)
         
         fits.writeto(path+filename, overwrite=True)
-        pass # TODO: implement write_fits()
+        print('Wrote file: {}'.format(path+filename))
 
 
     def __strip_units_for_fits_compatibility(self, map):
