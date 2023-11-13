@@ -354,18 +354,26 @@ class OnboardSoftware:
         pass # TODO: implement apply_jitter (will be different for the short exposure central disk and long exposure off-disk)
 
     
-    def filter_out_particle_hits(self, onboard_processed_images):
-        # TODO: Implement the min/max method Alan has in FPGA already, applied to the stack of images input
-        
-        map1 = onboard_processed_images[0]
-        map2 = onboard_processed_images[1]
-        composite_map = self.__composite_maps(map1, map2)
-        
-        return composite_map # TODO: figure out if this needs to be an array through time or not
-        pass # TODO: impelement filter_out_particle_hits (returns a composite images merging the on- and off-disk, and spanning time up to the duration corresponding to how many images to stack (e.g., four 15-second exposures stacked for median will result in a 1-minute composite))
+    def filter_out_particle_hits(self, onboard_processed_images):        
+        for exposure_type in ['short exposure', 'long exposure']:
+            map_indices = list(onboard_processed_images[exposure_type].keys())
+
+            if len(map_indices) != 3:
+                raise ValueError("Need exactly 3 images to apply particle filtering per Alan's CSIE FPGA logic.")
+
+            # TODO: Match the algorithm that is actually employed on the spacecraft. Ask Alan. It appears to only work if there are exactly 3 images. Verify.
+            sorted_indices = sorted(map_indices)[:3]
+            maps = [onboard_processed_images[exposure_type][index] for index in sorted_indices]
+
+            stack = np.stack([map_obj.data for map_obj in maps], axis=-1)
+            median_filtered = np.median(stack, axis=-1) # Note this is functionally equivalent to throwing out the min, max pixels if there are only 3 maps; but it's much more computationally efficient
+            new_map = sunpy.map.Map(median_filtered, maps[0].meta)
+            onboard_processed_images[exposure_type] = new_map
+
+        return onboard_processed_images
     
     
-    def __composite_maps(self, map1, map2):
+    def create_composite(self, map1, map2):
         solar_disk_center, solar_disk_radius = self.__get_solar_disk_center_and_radius_in_pixels(map1)
 
         # Create a boolean mask where True values represent the solar ~disk area
