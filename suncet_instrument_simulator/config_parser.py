@@ -19,6 +19,7 @@ class Config:
         self.apply_psf = config['behavior'].getboolean('apply_psf')
         self.apply_scattered_light_psf = config['behavior'].getboolean('apply_scattered_light_psf')
         self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
+        self.compress_image = config['behavior'].getboolean('compress_image')
         self.timesteps_to_process = json.loads(config.get('behavior', 'timesteps_to_process'))
         self.model_directory_name = config['behavior']['model_directory_name']
         self.em_directory_name = config['behavior']['em_directory_name']

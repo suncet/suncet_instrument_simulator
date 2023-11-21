@@ -105,6 +105,8 @@ class Simulator:
         self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.create_composite(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
+        if self.config.compress_image:
+            self.onboard_processed_images = self.onboard_software.compress_image(self.onboard_processed_images)
 
 
     def __calculate_snr(self):
