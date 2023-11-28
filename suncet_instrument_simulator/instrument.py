@@ -87,7 +87,7 @@ class Hardware:
 
 
     def extract_fov(self, radiance_maps):
-        fov_half_angles = self.config.fov / 4.0
+        fov_half_angles = self.config.fov / 2.0
 
         # TODO: Raise warning if instrument FOV > model FOV
 
@@ -472,6 +472,10 @@ class OnboardSoftware:
         scaled_data = (normalized_data * max_value).astype(dtype)
         image = Image.fromarray(scaled_data, mode=mode)
         return sunpy.map.Map(np.array(image), onboard_processed_images.meta)
+    
+    def __display_data(data): 
+        import matplotlib.pyplot as plt
+        plt.imshow(np.log10(np.clip(data, 0.1, None)))
 
 
 
