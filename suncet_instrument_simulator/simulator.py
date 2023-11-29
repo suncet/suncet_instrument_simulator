@@ -47,6 +47,7 @@ class Simulator:
         self.hardware.compute_effective_area()
         self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
         self.radiance_maps = self.hardware.interpolate_spatial_resolution(self.radiance_maps)
+        self.radiance_maps = self.hardware.convert_steradians_to_pixels(self.radiance_maps)
         if self.config.apply_psf: 
             self.radiance_maps = self.hardware.apply_psf(self.radiance_maps)
         if self.config.apply_scattered_light_psf:

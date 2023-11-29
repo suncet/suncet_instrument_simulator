@@ -3,11 +3,10 @@ import copy
 import warnings
 from glob import glob
 import numpy as np
-import numpy.ma as ma
+from scipy.integrate import simps
 from pandas import read_fwf, read_csv
 import astropy.units as u
 from astropy.units import UnitsError
-from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from astropy import constants as const
 import sunpy.map
@@ -112,10 +111,12 @@ class Hardware:
                 resampled_map.meta['cdelt2'] = self.config.plate_scale.value # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
                 radiance_maps_new_resolution[timestep][wavelength] = resampled_map
         return radiance_maps_new_resolution
+    
 
-
-    def __compute_plate_scale(): 
-        pass # TODO: is this needed? Even if not, would it be useful to include some computed quantities as instance variables just for reference or for the metadata/header?
+    def convert_steradians_to_pixels(self, radiance_maps):
+        plate_scale_rad = self.config.plate_scale.to(u.rad/u.pix)
+        pixel_area_steradians = (plate_scale_rad**2).to(u.steradian / (u.pix**2))
+        return self.__apply_function_to_leaves(radiance_maps, lambda x: x * pixel_area_steradians)
 
 
     def apply_psf(self, radiance_maps):
@@ -234,22 +235,32 @@ class Hardware:
     def convert_to_electrons(self, radiance_maps, apply_noise=True):
         quantum_yield = self.__compute_quantum_yields()
         quantum_yield_units_hacked = 1 * u.count/u.electron
+
         for exposure_type in ['short exposure', 'long exposure']:
             for timestep in radiance_maps[exposure_type]:
                 first_map = self.__get_any_map(radiance_maps[exposure_type][timestep])
-                detector_image = np.zeros_like(first_map.data) * first_map.unit * quantum_yield.unit * quantum_yield_units_hacked
+                summed_electrons = []
 
-                for i, (wavelength, map) in enumerate(radiance_maps[exposure_type][timestep].items()):
-                    detector_image += (map.data * map.unit) * (quantum_yield[i] * quantum_yield_units_hacked) # TODO: Should really be in electrons, not counts. Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
+                for i, map in enumerate(radiance_maps[exposure_type][timestep].values()):
+                    summed_electrons.append(map.data * map.unit * quantum_yield[i] * quantum_yield_units_hacked) # [ct / (Angstrom pix2)] but TODO: Should really be in electrons, not counts. Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
+
+                # Perform numerical integration across wavelengths; Assuming self.wavelengths is in the correct order and units
+                stacked_data = np.stack(summed_electrons, axis=-1)
+                integrated_data = simps(stacked_data, x=self.wavelengths, axis=-1) # Warning: there isn't presently (2023-11-29) an integration method that propagates astropy units so we have to do it carefully ourselves
+
+                # Store the integrated data in the same format as the original maps
+                detector_image = np.zeros_like(first_map.data) * first_map.unit * quantum_yield.unit * quantum_yield_units_hacked * self.wavelengths.unit # This is where we're manually accounting for the unit change due to integration over wavelength, by multiplying by the wavelength unit
+                detector_image += integrated_data * detector_image.unit
+                
+                updated_meta = self.__update_map_meta(first_map.meta, detector_image)
+                detector_image = sunpy.map.Map(detector_image, updated_meta)
                 
                 if apply_noise:
                     detector_image = self.__apply_fano_noise(detector_image)
 
                 detector_image = self.__clip_at_full_well(detector_image)
                 
-                updated_meta = self.__update_map_meta(first_map.meta)
-                new_map = sunpy.map.Map(detector_image, updated_meta)
-                radiance_maps[exposure_type][timestep] = new_map
+                radiance_maps[exposure_type][timestep] = detector_image
 
         return radiance_maps
     
@@ -262,27 +273,32 @@ class Hardware:
                 return value
 
 
-    def __update_map_meta(self, meta):
+    def __update_map_meta(self, meta, detector_image):
         meta['wavelnth'] = self.wavelengths.mean().value
         meta['waveunit'] = self.wavelengths.mean().unit.to_string()
+        meta['bunit'] = detector_image.unit.to_string()
         return meta
 
 
     def __compute_quantum_yields(self):
         photoelectron_in_silicon = 3.63 * u.eV * u.ph / u.electron # the magic number 3.63 here the typical energy [eV] to release a photoelectron in silicon
         return (const.h * const.c / self.wavelengths.to(u.m)).to(u.eV) / photoelectron_in_silicon 
-
+    
 
     def __apply_fano_noise(self, detector_image):
-        return np.random.poisson(lam=detector_image.data) * np.sqrt(self.config.fano_factor)
+        noisy_data = np.random.poisson(lam=detector_image.data) * np.sqrt(self.config.fano_factor)
+        return sunpy.map.Map(noisy_data, detector_image.meta)
 
 
     def __clip_at_full_well(self, detector_image):
-        if detector_image.unit != self.config.pixel_full_well.unit: 
-            # raise UnitsError('The units for the detector image does not match the units of the pixel full well.') # TODO: uncomment this once earlier functions are written to ensure the units actually are the same
-            return detector_image
-        mask = detector_image.data > self.config.pixel_full_well.value
-        detector_image.data[mask] = self.config.pixel_full_well
+        # TODO: uncomment this block once we can actually store things in electrons instead of counts (see GitHub issue cited above)
+        #if detector_image.unit != self.config.pixel_full_well.unit: 
+        #    raise UnitsError('The units for the detector image does not match the units of the pixel full well.') 
+        #    return detector_image
+        if detector_image.unit == (u.ct/u.pix**2): 
+            print('Just a reminder that we have to use counts (u.ct) until sunpy allows us to store with electrons (u.electron)')
+            mask = detector_image.data > self.config.pixel_full_well.value
+            detector_image.data[mask] = self.config.pixel_full_well
         
         return detector_image
     

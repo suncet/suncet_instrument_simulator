@@ -44,7 +44,7 @@ class Config:
         self.plate_scale = config['detector'].getfloat('plate_scale') * u.arcsec / u.pix
         self.quantum_efficiency_filename = config['detector']['quantum_efficiency_filename']
         self.read_noise = config['detector'].getfloat('read_noise') * u.electron
-        self.pixel_full_well = config['detector'].getfloat('pixel_full_well') * u.electron
+        self.pixel_full_well = config['detector'].getfloat('pixel_full_well') * (u.electron / u.pix**2)
         self.num_pixels_to_bin = json.loads(config.get('detector', 'num_pixels_to_bin'))
         self.readout_bits = config['detector'].getint('readout_bits') * u.bit
         self.detector_temperature = config['detector'].getfloat('detector_temperature') * u.deg_C
