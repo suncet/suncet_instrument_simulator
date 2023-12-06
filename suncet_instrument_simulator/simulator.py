@@ -21,6 +21,7 @@ class Simulator:
         self.onboard_software = 'not yet loaded'
         self.metadata = 'not yet loaded'
 
+
     def __read_config(self, config_filename):   
         return config_parser.Config(config_filename)
 
@@ -28,37 +29,43 @@ class Simulator:
     def run(self):
         self.hardware = instrument.Hardware(self.config)
         self.onboard_software = instrument.OnboardSoftware(self.config)
-        self.__sun_to_detector()
-        self.__simulate_noise()
-        self.__simulate_detector()
-        self.__apply_camera_software()
-        self.__calculate_snr()
-        self.__complete_metadata()
-        self.__output_files()
+        
+        timesteps = self.__get_timesteps()
+        for timestep in timesteps: 
+            self.current_timestep = timestep
+            self.__sun_emission()
+            if self.radiance_maps_found:
+                self.__sun_to_detector()
+                self.__simulate_noise()
+                self.__simulate_detector()
+                self.__apply_camera_software()
+                self.__calculate_snr()
+                self.__complete_metadata()
+                self.__output_files()
     
 
-    def __sun_to_detector(self):
+    def __get_timesteps(self): 
+        first, last, step = self.config.timesteps_to_process
+        step = self.config.num_long_exposures_to_stack  # Overall processing step defined by the SHDR algorithm rather than the step being used to figure out what radiance maps to compute
+        return [str(i).zfill(3) for i in range(first, last + 1, step)]
+
+
+    def __sun_emission(self): 
         if self.config.compute_new_radiance_maps:
             self.radiance_maps = make_radiance_maps.MakeRadianceMaps(self.config).run()
-        else: 
-            self.__load_radiance_maps()
-        self.hardware.store_target_wavelengths(self.radiance_maps)
+        self.__load_radiance_maps()
 
-        self.hardware.compute_effective_area()
-        self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
-        self.radiance_maps = self.hardware.interpolate_spatial_resolution(self.radiance_maps)
-        self.radiance_maps = self.hardware.convert_steradians_to_pixels(self.radiance_maps)
-        if self.config.apply_psf: 
-            self.radiance_maps = self.hardware.apply_psf(self.radiance_maps)
-        if self.config.apply_scattered_light_psf:
-            self.radiance_maps = self.hardware.apply_scattered_light_psf(self.radiance_maps)
-        self.radiance_maps = self.hardware.apply_effective_area(self.radiance_maps)
-        self.radiance_maps = self.hardware.apply_exposure_times(self.radiance_maps)
 
-    
     def __load_radiance_maps(self):
+        self.radiance_maps_found = True
+        #filenames = sorted(glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_0[4][0-2].fits')) # TODO: remove this. just a hard coded place where things have worked for debugging.
+        filenames = self.__get_radiance_map_filenames()
+        if len(filenames) < self.config.num_long_exposures_to_stack: 
+            print('Need {} radiance maps for SHDR stacking but only found {} for timestep {}'.format(self.config.num_long_exposures_to_stack, len(filenames), self.current_timestep))
+            self.radiance_maps_found = False
+            return
+        
         maps_by_index_and_wavelength = {}
-        filenames = sorted(glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_0[4][0-2].fits'))
         for filename in filenames:
             index = os.path.basename(filename).split('_')[-1].replace('.fits', '')
             maps = sunpy.map.Map(filename)
@@ -72,6 +79,34 @@ class Simulator:
             
         
         self.radiance_maps = maps_by_index_and_wavelength
+
+
+    def __get_radiance_map_filenames(self):
+        start = int(self.current_timestep)
+        end = start + self.config.num_long_exposures_to_stack - 1
+
+        base_directory = os.getenv('suncet_data') + self.config.model_data_folder + '/' + self.config.map_directory_name + '/'
+
+        filenames = []
+        for timestep in range(start, end + 1):
+            file_pattern = 'radiance_maps_' + str(timestep).zfill(3) + '.fits'
+            filenames.extend(glob(base_directory + file_pattern))
+
+        return sorted(filenames)
+
+
+    def __sun_to_detector(self):
+        self.hardware.store_target_wavelengths(self.radiance_maps)
+        self.hardware.compute_effective_area()
+        self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
+        self.radiance_maps = self.hardware.interpolate_spatial_resolution(self.radiance_maps)
+        self.radiance_maps = self.hardware.convert_steradians_to_pixels(self.radiance_maps)
+        if self.config.apply_psf: 
+            self.radiance_maps = self.hardware.apply_psf(self.radiance_maps)
+        if self.config.apply_scattered_light_psf:
+            self.radiance_maps = self.hardware.apply_scattered_light_psf(self.radiance_maps)
+        self.radiance_maps = self.hardware.apply_effective_area(self.radiance_maps)
+        self.radiance_maps = self.hardware.apply_exposure_times(self.radiance_maps)
 
 
     def __simulate_noise(self):
@@ -172,7 +207,7 @@ class Simulator:
     def __write_fits(self):
         path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
         fits = self.fits
-        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + fits[0].header['DATE-OBS'] + '.fits'
+        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + fits[0].header['DATE-OBS'] + '_' + self.current_timestep + '.fits'
         fits[0].header.set('FILENAME', value=filename)
         
         fits.writeto(path+filename, overwrite=True)
