@@ -3,7 +3,6 @@ This is the main wrapper for most/all(?) of the other instrument simulator relat
 """
 import os
 from glob import glob
-from datetime import datetime
 import astropy.units as u
 from astropy.io import fits
 import sunpy.map
@@ -153,10 +152,9 @@ class Simulator:
         metadata_definition = self.__load_metadata_definition()
         map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
 
-        tmp = fits.PrimaryHDU()
-        header = tmp.header # A blank header with the required FITS keywords in the required order
+        header = self.__convert_sunpy_meta_to_fits_header(map)
 
-        for i, row in metadata_definition.iterrows():
+        for _, row in metadata_definition.iterrows():
             if 'COMMENT' in str(row['Full variable name']): 
                 header.set('COMMENT', value=row['Full variable name'].replace('COMMENT ', ''), after=len(header))  # line breaking comments for human readability
             elif row['FITS variable name'] not in header: 
@@ -171,13 +169,8 @@ class Simulator:
                 header.set(row['FITS variable name'], value=value, comment=row['Description'], after=len(header))
 
         # Populate metadata defined by the config file or resultant from the simulation
-        header.set('NAXIS', value=3)
-        header.set('NAXIS1', value=1) # TODO: this is the number of images in the stack through time.. but that should always be collapsed to 1 by this point in the simulator. Need to reconcile. 
-        header.set('NAXIS2', value=map.dimensions[0].value)
-        header.set('NAXIS3', value=map.dimensions[1].value)
         header.set('LEVEL', value='0.5')
         header.set('TIMESYS', value='UTC')
-        header.set('DATE-OBS', value=map.meta['DATE-OBS'])
         header.set('IMAGEW', value=map.dimensions[0].value)
         header.set('IMAGEH', value=map.dimensions[1].value)
         header.set('NBIN', value=(self.config.num_pixels_to_bin[0] * self.config.num_pixels_to_bin[1]))
@@ -185,16 +178,34 @@ class Simulator:
         header.set('NBIN2', value=self.config.num_pixels_to_bin[1])
         header.set('DET_TEMP', value=self.config.detector_temperature.value)
         header.set('EXPTIME', map.meta['EXPTIME'])
+        header.set('RSUN_REF', map.rsun_meters.value)
 
-        hdu = fits.PrimaryHDU(map.data, header) # FIXME: the line above setting nan to None or '' doesn't work either. Need to figure out what FITS allows for empty. 
+        hdu = fits.PrimaryHDU(map.data, header)
         hdul = fits.HDUList(hdu)
 
         self.fits = hdul
-        pass
     
 
     def __load_metadata_definition(self):
         return pd.read_csv(os.getenv('suncet_data') + '/metadata/' + self.config.base_metadata_filename)
+    
+    
+    def __strip_units_for_fits_compatibility(self, map):
+        meta = map.meta
+        for key, value in meta.items():
+            if isinstance(value, u.Quantity):
+                value = value.value
+            meta[key] = value
+        return sunpy.map.Map(map.data, meta)
+    
+
+    def __convert_sunpy_meta_to_fits_header(self, map):
+        # This is a really stupid way to get this done, but all the more elegant ways tried to date (2023-12-07) have not worked
+        map.save('tmp.fits')
+        with fits.open('tmp.fits') as hdul:
+            header = hdul[0].header
+        os.remove('tmp.fits')
+        return header
 
 
     def __output_files(self):
@@ -206,21 +217,11 @@ class Simulator:
 
     def __write_fits(self):
         path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
-        fits = self.fits
-        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + fits[0].header['DATE-OBS'] + '_' + self.current_timestep + '.fits'
-        fits[0].header.set('FILENAME', value=filename)
+        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + self.fits[0].header['DATE-OBS'] + '_' + self.current_timestep + '.fits'
+        self.fits[0].header.set('FILENAME', value=filename)
         
-        fits.writeto(path+filename, overwrite=True)
+        self.fits.writeto(path+filename, overwrite=True)
         print('Wrote file: {}'.format(path+filename))
-
-
-    def __strip_units_for_fits_compatibility(self, map):
-        meta = map.meta
-        for key, value in meta.items():
-            if isinstance(value, u.Quantity):
-                value = value.value
-            meta[key] = value
-        return sunpy.map.Map(map.data, meta)
 
 
     def __write_binary(self):
