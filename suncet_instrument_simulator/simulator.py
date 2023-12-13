@@ -52,12 +52,12 @@ class Simulator:
     def __sun_emission(self): 
         if self.config.compute_new_radiance_maps:
             self.radiance_maps = make_radiance_maps.MakeRadianceMaps(self.config).run()
+            self.config.compute_new_radiance_maps = False # Only need to do it the one time, not every loop
         self.__load_radiance_maps()
 
 
     def __load_radiance_maps(self):
         self.radiance_maps_found = True
-        #filenames = sorted(glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_0[4][0-2].fits')) # TODO: remove this. just a hard coded place where things have worked for debugging.
         filenames = self.__get_radiance_map_filenames()
         if len(filenames) < self.config.num_long_exposures_to_stack: 
             print('Need {} radiance maps for SHDR stacking but only found {} for timestep {}'.format(self.config.num_long_exposures_to_stack, len(filenames), self.current_timestep))
@@ -115,7 +115,7 @@ class Simulator:
         self.detector_images_pure = self.hardware.convert_to_electrons(self.radiance_maps_pure, apply_noise=False)
         self.dark_frame = self.hardware.make_dark_frame()
         self.read_frame = self.hardware.make_read_frame()
-        self.spike_frame = self.hardware.make_spike_frame()
+        self.spike_mask = self.hardware.make_spike_mask()
 
         self.__combine_noise_sources()
 

@@ -18,6 +18,7 @@ class Config:
         self.compute_new_radiance_maps = config['behavior'].getboolean('compute_new_radiance_maps')
         self.apply_psf = config['behavior'].getboolean('apply_psf')
         self.apply_scattered_light_psf = config['behavior'].getboolean('apply_scattered_light_psf')
+        self.apply_particle_spikes = config['behavior'].getboolean('apply_particle_spikes')
         self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
         self.compress_image = config['behavior'].getboolean('compress_image')
         self.timesteps_to_process = json.loads(config.get('behavior', 'timesteps_to_process'))
