@@ -116,6 +116,8 @@ class Simulator:
         self.dark_frame = self.hardware.make_dark_frame()
         self.read_frame = self.hardware.make_read_frame()
         self.spike_mask = self.hardware.make_spike_mask()
+        self.hot_pixel_mask = self.hardware.make_hot_pixel_mask()
+        self.dead_pixel_mask = self.hardware.make_dead_pixel_mask()
 
         self.__combine_noise_sources()
 

@@ -334,28 +334,30 @@ class Hardware:
         number_spikes_short = int(self.config.detector_physical_area * self.config.spike_rate * self.config.exposure_time_short)
         number_spikes_long = int(self.config.detector_physical_area * self.config.spike_rate * self.config.exposure_time_long)
         
-        spike_mask_short = self.__populate_mask_with_spikes(number_spikes_short)
-        spike_mask_long = self.__populate_mask_with_spikes(number_spikes_long)
+        spike_mask_short = self.__populate_mask_with_artifacts(number_spikes_short)
+        spike_mask_long = self.__populate_mask_with_artifacts(number_spikes_long)
         
         return {"short exposure": spike_mask_short, "long exposure": spike_mask_long}
     
     
-    def __populate_mask_with_spikes(self, number_spikes):
+    def __populate_mask_with_artifacts(self, number_artifacts):
         dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
-        spike_mask = np.zeros((dim_x, dim_y), dtype=bool)
+        mask = np.zeros((dim_x, dim_y), dtype=bool)
 
-        x_coords = np.random.randint(0, self.config.image_dimensions[0].value, number_spikes)
-        y_coords = np.random.randint(0, self.config.image_dimensions[1].value, number_spikes)
-        spike_mask[x_coords, y_coords] = True
-        return spike_mask
+        x_coords = np.random.randint(0, self.config.image_dimensions[0].value, number_artifacts)
+        y_coords = np.random.randint(0, self.config.image_dimensions[1].value, number_artifacts)
+        mask[x_coords, y_coords] = True
+        return mask
 
     
     def make_hot_pixel_mask(self):
-        pass # TODO 
+        number_hot_pixels = int(self.config.fraction_hot_pixels * self.config.image_dimensions[0].value * self.config.image_dimensions[1].value)
+        return self.__populate_mask_with_artifacts(number_hot_pixels)
 
 
     def make_dead_pixel_mask(self):
-        pass # TODO
+        number_dead_pixels = int(self.config.fraction_dead_pixels * self.config.image_dimensions[0].value * self.config.image_dimensions[1].value)
+        return self.__populate_mask_with_artifacts(number_dead_pixels)
     
 
     def combine_signal_and_noise(self, detector_images, pure_signal, noise_only):
