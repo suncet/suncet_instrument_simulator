@@ -6,7 +6,6 @@ import numpy as np
 from scipy.integrate import simps
 from pandas import read_fwf, read_csv
 import astropy.units as u
-from astropy.units import UnitsError
 from astropy.coordinates import SkyCoord
 from astropy import constants as const
 import sunpy.map
@@ -303,8 +302,22 @@ class Hardware:
         return detector_image
     
     def make_dark_frame(self):
-        pass # TODO: implement make_dark_frame
+        if self.config.detector_temperature.unit != u.deg_C: 
+            raise u.UnitsError("The detector temperature must be in units of Celsius. Either convert in the config or edit the math in this function accordingly.")
+        
+        dark_current_mean = 20 * 2**((self.config.detector_temperature.value - 20) / 5.5)
+        dark_current_std = 12 * 2**((self.config.detector_temperature.value - 20) / 5.5)
+        dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
+        
+        dark_frame = np.random.normal(dark_current_mean, dark_current_std, (dim_x, dim_y))
+        dark_frame = np.clip(dark_frame, 0, None)  # Can't have negative values
+        dark_frame *= u.electron/u.second 
+        
+        dark_frame_short = dark_frame * self.config.exposure_time_short
+        dark_frame_long = dark_frame * self.config.exposure_time_long
 
+        return {"short exposure": dark_frame_short, "long exposure": dark_frame_long}
+        
 
     def make_read_frame(self):
         pass # TODO: implement make_read_frame
