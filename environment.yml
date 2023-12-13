@@ -19,5 +19,6 @@ dependencies:
   - h5netcdf=1.1.0
   - bottleneck=1.3.7
   - pillow-jpls=1.2.0
+  - imageio-ffmpeg=2.19.3
 
 prefix: ~/anaconda3
