@@ -113,22 +113,15 @@ class Simulator:
         self.radiance_maps = self.hardware.apply_photon_shot_noise(self.radiance_maps)
         self.detector_images = self.hardware.convert_to_electrons(self.radiance_maps, apply_noise=True)
         self.detector_images_pure = self.hardware.convert_to_electrons(self.radiance_maps_pure, apply_noise=False)
-        self.dark_frame = self.hardware.make_dark_frame()
-        self.read_frame = self.hardware.make_read_frame()
-        self.spike_mask = self.hardware.make_spike_mask()
-        self.hot_pixel_mask = self.hardware.make_hot_pixel_mask()
-        self.dead_pixel_mask = self.hardware.make_dead_pixel_mask()
-
-        self.__combine_noise_sources()
-
-
-    def __combine_noise_sources(self):
-        self.noise_only = None
-        pass # implement combine_noise_sources (self.noise_only, self.dark_frame, self.read_frame, and self.spike_frame)
+        self.hardware.make_dark_frame()
+        self.hardware.make_read_frame()
+        self.hardware.make_spike_mask()
+        self.hardware.make_hot_pixel_mask()
+        self.hardware.make_dead_pixel_mask()
     
 
     def __simulate_detector(self):
-        self.detector_images = self.hardware.combine_signal_and_noise(self.detector_images, self.detector_images_pure, self.noise_only)
+        self.detector_images = self.hardware.combine_signal_and_noise(self.detector_images, self.detector_images_pure)
         self.detector_images = self.hardware.convert_to_dn(self.detector_images)
         self.detector_images = self.hardware.apply_screwy_pixels(self.detector_images, self.spike_frame)    
 

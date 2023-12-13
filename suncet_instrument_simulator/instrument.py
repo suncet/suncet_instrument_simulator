@@ -316,7 +316,7 @@ class Hardware:
         dark_frame_short = dark_frame * self.config.exposure_time_short
         dark_frame_long = dark_frame * self.config.exposure_time_long
 
-        return {"short exposure": dark_frame_short, "long exposure": dark_frame_long}
+        self.dark_frame = {"short exposure": dark_frame_short, "long exposure": dark_frame_long}
         
 
     def make_read_frame(self):
@@ -327,7 +327,7 @@ class Hardware:
 
         read_frame = np.random.normal(0, self.config.read_noise.value, (dim_x, dim_y)) # Note: read noise is allowed to be negative (https://www.photometrics.com/learn/advanced-imaging/pattern-noise-dsnu-and-prnu#:~:text=Noise%20in%20scientific%20cameras%20is,from%20a%20software%20point%20of)
         read_frame *= u.electron
-        return read_frame
+        self.read_frame = read_frame
 
     
     def make_spike_mask(self):
@@ -337,7 +337,7 @@ class Hardware:
         spike_mask_short = self.__populate_mask_with_artifacts(number_spikes_short)
         spike_mask_long = self.__populate_mask_with_artifacts(number_spikes_long)
         
-        return {"short exposure": spike_mask_short, "long exposure": spike_mask_long}
+        self.spike_mask =  {"short exposure": spike_mask_short, "long exposure": spike_mask_long}
     
     
     def __populate_mask_with_artifacts(self, number_artifacts):
@@ -352,15 +352,15 @@ class Hardware:
     
     def make_hot_pixel_mask(self):
         number_hot_pixels = int(self.config.fraction_hot_pixels * self.config.image_dimensions[0].value * self.config.image_dimensions[1].value)
-        return self.__populate_mask_with_artifacts(number_hot_pixels)
+        self.hot_pixel_mask = self.__populate_mask_with_artifacts(number_hot_pixels)
 
 
     def make_dead_pixel_mask(self):
         number_dead_pixels = int(self.config.fraction_dead_pixels * self.config.image_dimensions[0].value * self.config.image_dimensions[1].value)
-        return self.__populate_mask_with_artifacts(number_dead_pixels)
+        self.dead_pixel_mask = self.__populate_mask_with_artifacts(number_dead_pixels)
     
 
-    def combine_signal_and_noise(self, detector_images, pure_signal, noise_only):
+    def combine_signal_and_noise(self, detector_images, pure_signal):
         return detector_images
         pass # TODO: implement combine_signal_and_noise
 
