@@ -320,7 +320,14 @@ class Hardware:
         
 
     def make_read_frame(self):
-        pass # TODO: implement make_read_frame
+        if self.config.read_noise.unit != u.electron: 
+            raise u.UnitsError("The read noise must be in units of electrons.")
+        
+        dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
+
+        read_frame = np.random.normal(0, self.config.read_noise.value, (dim_x, dim_y)) # Note: read noise is allowed to be negative (https://www.photometrics.com/learn/advanced-imaging/pattern-noise-dsnu-and-prnu#:~:text=Noise%20in%20scientific%20cameras%20is,from%20a%20software%20point%20of)
+        read_frame *= u.electron
+        return read_frame
 
     
     def make_spike_frame(self):
