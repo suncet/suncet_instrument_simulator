@@ -292,8 +292,7 @@ class Hardware:
     def __clip_at_full_well(self, detector_image):
         # TODO: uncomment this block once we can actually store things in electrons instead of counts (see GitHub issue cited above)
         #if detector_image.unit != self.config.pixel_full_well.unit: 
-        #    raise UnitsError('The units for the detector image does not match the units of the pixel full well.') 
-        #    return detector_image
+        #    raise u.UnitsError('The units for the detector image does not match the units of the pixel full well.') 
         if detector_image.unit == (u.ct/u.pix**2): 
             print('Just a reminder that we have to use counts (u.ct) until sunpy allows us to store with electrons (u.electron)')
             mask = detector_image.data > self.config.pixel_full_well.value
@@ -309,9 +308,9 @@ class Hardware:
         dark_current_std = 12 * 2**((self.config.detector_temperature.value - 20) / 5.5)
         dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
         
-        dark_frame = np.random.normal(dark_current_mean, dark_current_std, (dim_x, dim_y))
+        dark_frame = np.random.normal(dark_current_mean, dark_current_std, (dim_y, dim_x))
         dark_frame = np.clip(dark_frame, 0, None)  # Can't have negative values
-        dark_frame *= u.electron/u.second 
+        dark_frame *= u.electron/u.second/u.pix**2
         
         dark_frame_short = dark_frame * self.config.exposure_time_short
         dark_frame_long = dark_frame * self.config.exposure_time_long
@@ -320,13 +319,13 @@ class Hardware:
         
 
     def make_read_frame(self):
-        if self.config.read_noise.unit != u.electron: 
-            raise u.UnitsError("The read noise must be in units of electrons.")
+        if self.config.read_noise.unit != (u.electron/u.pixel**2): 
+            raise u.UnitsError("The read noise must be in units of electrons/pixel^2.")
         
         dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
 
-        read_frame = np.random.normal(0, self.config.read_noise.value, (dim_x, dim_y)) # Note: read noise is allowed to be negative (https://www.photometrics.com/learn/advanced-imaging/pattern-noise-dsnu-and-prnu#:~:text=Noise%20in%20scientific%20cameras%20is,from%20a%20software%20point%20of)
-        read_frame *= u.electron
+        read_frame = np.random.normal(0, self.config.read_noise.value, (dim_y, dim_x)) # Note: read noise is allowed to be negative (https://www.photometrics.com/learn/advanced-imaging/pattern-noise-dsnu-and-prnu#:~:text=Noise%20in%20scientific%20cameras%20is,from%20a%20software%20point%20of)
+        read_frame *= (u.electron/u.pix**2)
         self.read_frame = read_frame
 
     
@@ -342,11 +341,11 @@ class Hardware:
     
     def __populate_mask_with_artifacts(self, number_artifacts):
         dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
-        mask = np.zeros((dim_x, dim_y), dtype=bool)
+        mask = np.zeros((dim_y, dim_x), dtype=bool) # this is the way numpy and matplotlib interpret horizontal/vertical. sunpy understands it.
 
         x_coords = np.random.randint(0, self.config.image_dimensions[0].value, number_artifacts)
         y_coords = np.random.randint(0, self.config.image_dimensions[1].value, number_artifacts)
-        mask[x_coords, y_coords] = True
+        mask[y_coords, x_coords] = True
         return mask
 
     
@@ -361,12 +360,37 @@ class Hardware:
     
 
     def combine_signal_and_noise(self, detector_images, pure_signal):
+        detector_images = self.__add_dark_frame_per_exposure_time(detector_images)
+        detector_images = self.__add_read_frame(detector_images)
+        # TODO: apply spike mask
+        # TODO: apply hot pixel mask
+        # TODO: apply dead pixel mask
+
         return detector_images
         pass # TODO: implement combine_signal_and_noise
 
+
+    def __add_dark_frame_per_exposure_time(self, detector_images):
+        short = self.__apply_function_to_leaves(detector_images['short exposure'], self.__add_dark_frame, exposure='short exposure')
+        long = self.__apply_function_to_leaves(detector_images['long exposure'], self.__add_dark_frame, exposure='long exposure')
+        return {"short exposure": short, "long exposure": long} 
+
+
+    def __add_dark_frame(self, map, exposure='short exposure'):
+        # TODO: uncomment this block once we can actually store things in electrons instead of counts (see GitHub issue cited above)
+        #if map.unit != self.dark_frame.unit: 
+        #    raise u.UnitsError('The units for the detector image does not match the units of dark frame.') 
+        data = map.data + self.dark_frame[exposure].value
+        return sunpy.map.Map(data, map.meta)
+    
+
+    def __add_read_frame(self, detector_images): 
+        read_frame_units_hacked = self.read_frame * u.count/u.electron # TODO: Won't need this once we can store things in electrons
+        return self.__apply_function_to_leaves(detector_images, lambda x: x + read_frame_units_hacked)
+
     
     def convert_to_dn(self, detector_images):
-        gain_factor = self.config.detector_gain * u.dN/u.dn * u.electron/u.count
+        gain_factor = self.config.detector_gain * u.electron/u.count # TODO: fix these units once we can actually store things in electrons instead of counts (see GitHub issue cited above)
         return self.__apply_function_to_leaves(detector_images, lambda x: x * gain_factor)
     
         # TODO: Clip to DN max (Alan set the gain so that pixel full well [33k] electrons is 90% of the ADC dynamic range); therefore, if the image has already been clipped to full well, this clipping function shouldn't ever do anything

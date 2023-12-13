@@ -44,12 +44,12 @@ class Config:
         self.image_dimensions = json.loads(config.get('detector', 'image_dimensions')) * u.pix
         self.plate_scale = config['detector'].getfloat('plate_scale') * u.arcsec / u.pix
         self.quantum_efficiency_filename = config['detector']['quantum_efficiency_filename']
-        self.read_noise = config['detector'].getfloat('read_noise') * u.electron
+        self.read_noise = config['detector'].getfloat('read_noise') * (u.electron / u.pix**2)
         self.pixel_full_well = config['detector'].getfloat('pixel_full_well') * (u.electron / u.pix**2)
         self.num_pixels_to_bin = json.loads(config.get('detector', 'num_pixels_to_bin'))
         self.readout_bits = config['detector'].getint('readout_bits') * u.bit
         self.detector_temperature = config['detector'].getfloat('detector_temperature') * u.deg_C
-        self.detector_gain = config['detector'].getfloat('detector_gain') * u.dn / u.electron
+        self.detector_gain = config['detector'].getfloat('detector_gain') * u.dN / u.electron # has to be u.dN because u.dn causes sunpy to throw an error about incompatibility with FITS
         self.fraction_dead_pixels = config['detector'].getfloat('fraction_dead_pixels')
         self.fraction_hot_pixels = config['detector'].getfloat('fraction_hot_pixels')
         self.spike_rate = config['detector'].getfloat('spike_rate') / u.second / u.cm**2
