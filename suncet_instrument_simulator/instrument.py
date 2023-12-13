@@ -332,6 +332,14 @@ class Hardware:
     
     def make_spike_frame(self):
         pass # TODO: implement make_spike_frame
+
+    
+    def make_hot_pixel_frame(self):
+        pass # TODO 
+
+
+    def make_dead_pixel_frame(self):
+        pass # TODO
     
 
     def combine_signal_and_noise(self, detector_images, pure_signal, noise_only):
@@ -346,11 +354,6 @@ class Hardware:
         # TODO: Clip to DN max (Alan set the gain so that pixel full well [33k] electrons is 90% of the ADC dynamic range); therefore, if the image has already been clipped to full well, this clipping function shouldn't ever do anything
         #return sunpy.map.MapSequence([map *  self.config.detector_gain # TODO: This is all that'll be needed once TODO above is addressed
         #                              for map in detector_images])
-
-    
-    def apply_screwy_pixels(self, detector_images, spike_frame):
-        return detector_images
-        pass # TODO: implement apply_screwy_pixels (spikes, dead pixels, hot pixels; ensure that none of these are above the full well)
 
 
 class OnboardSoftware:
