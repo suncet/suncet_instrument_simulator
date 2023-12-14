@@ -136,3 +136,5 @@ dmypy.json
 *11000A.txt
 .vscode/settings.json
 SunCET_MapSeq.fits
+jpm.prof
+suncet_instrument_simulator/explore_output_images.ipynb
