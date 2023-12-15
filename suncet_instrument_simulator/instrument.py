@@ -329,14 +329,24 @@ class Hardware:
         self.read_frame = read_frame
 
     
-    def make_spike_mask(self):
-        number_spikes_short = int(self.config.detector_physical_area * self.config.spike_rate * self.config.exposure_time_short)
-        number_spikes_long = int(self.config.detector_physical_area * self.config.spike_rate * self.config.exposure_time_long)
-        
-        spike_mask_short = self.__populate_mask_with_artifacts(number_spikes_short)
-        spike_mask_long = self.__populate_mask_with_artifacts(number_spikes_long)
-        
-        self.spike_mask =  {"short exposure": spike_mask_short, "long exposure": spike_mask_long}
+    def make_spike_masks(self, detector_images):
+        spike_masks = {}
+
+        for exposure_type, images in detector_images.items():
+            # Determine the number of spikes based on exposure time
+            if exposure_type == 'short exposure':
+                number_spikes = int(self.config.detector_physical_area * self.config.spike_rate * self.config.exposure_time_short)
+            elif exposure_type == 'long exposure':
+                number_spikes = int(self.config.detector_physical_area * self.config.spike_rate * self.config.exposure_time_long)
+
+            spike_masks[exposure_type] = {}
+
+            # For each timestep nested in this exposure type, generate a unique spike mask
+            for timestep in images:
+                spike_masks[exposure_type][timestep] = self.__populate_mask_with_artifacts(number_spikes)
+
+        # Store the generated spike masks
+        self.spike_masks = spike_masks
     
     
     def __populate_mask_with_artifacts(self, number_artifacts):
@@ -359,15 +369,15 @@ class Hardware:
         self.dead_pixel_mask = self.__populate_mask_with_artifacts(number_dead_pixels)
     
 
-    def combine_signal_and_noise(self, detector_images, pure_signal):
+    def combine_signal_and_noise(self, detector_images):
         detector_images = self.__add_dark_frame_per_exposure_time(detector_images)
         detector_images = self.__add_read_frame(detector_images)
-        # TODO: apply spike mask
-        # TODO: apply hot pixel mask
-        # TODO: apply dead pixel mask
+        detector_images = self.__add_spikes(detector_images)
+        detector_images = self.__add_hot_pixels(detector_images)
+        detector_images = self.__add_dead_pixels(detector_images)
+        detector_images = self.__apply_function_to_leaves(detector_images, self.__clip_at_full_well)
 
         return detector_images
-        pass # TODO: implement combine_signal_and_noise
 
 
     def __add_dark_frame_per_exposure_time(self, detector_images):
@@ -387,6 +397,51 @@ class Hardware:
     def __add_read_frame(self, detector_images): 
         read_frame_units_hacked = self.read_frame * u.count/u.electron # TODO: Won't need this once we can store things in electrons
         return self.__apply_function_to_leaves(detector_images, lambda x: x + read_frame_units_hacked)
+    
+
+    def __add_spikes(self, detector_images):
+        for exposure_type in detector_images:
+            for timestep in detector_images[exposure_type]:
+                map = detector_images[exposure_type][timestep]
+                mask = self.spike_masks[exposure_type][timestep]
+
+                image_data = map.data
+                image_data[mask] = self.config.pixel_full_well
+                detector_images[exposure_type][timestep] = sunpy.map.Map(image_data, map.meta)
+
+        return detector_images
+    
+
+    def __add_hot_pixels(self, detector_images):
+        hot_pixel_values = self.__generate_hot_pixel_values()
+        return self.__apply_function_to_leaves(detector_images, self.__add_hot_pixels_to_single_map, hot_pixel_values=hot_pixel_values) 
+
+
+
+    def __generate_hot_pixel_values(self):
+        dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
+        
+        # The magic numbers here are based on Dan's experience with the intensity range and distribution of hot pixels
+        # The resultant distribution should range from 0 to about 158 or so
+        dist = np.random.normal(loc=15, scale=5, size=(dim_y, dim_x))
+        hot_pixel_values = (np.clip(dist, 25, None) - 25) * 10
+        
+        return hot_pixel_values * (u.count/u.pix**2) # TODO: change units to u.electron once sunpy supports (see GitHub issue above)
+
+
+    def __add_hot_pixels_to_single_map(self, map, hot_pixel_values=None):
+        data = map.data.copy()
+        data[self.hot_pixel_mask] += hot_pixel_values[self.hot_pixel_mask].value
+        return sunpy.map.Map(data, map.meta)
+    
+
+    def __add_dead_pixels(self, detector_images):
+        def set_dead_pixels_in_map(map):
+            data = map.data.copy()
+            data[self.dead_pixel_mask] = 0
+            return sunpy.map.Map(data, map.meta)
+        
+        return self.__apply_function_to_leaves(detector_images, set_dead_pixels_in_map)
 
     
     def convert_to_dn(self, detector_images):
@@ -403,7 +458,7 @@ class OnboardSoftware:
         self.config = config
     
 
-    def subtract_dark(self, detector_images, dark_frame):
+    def subtract_dark(self, detector_images):
         '''
         A dark frame map, drawn from a random distribution on the basis of a 
         config item for the average dark current in the detector as a function
@@ -415,8 +470,6 @@ class OnboardSoftware:
         ----------
         detector_images : [sunpy.map.MapSequence]
             A sunpy detector images map sequence
-        dark_frame : [self.dark_frame]
-            A config dark_frame map
 
         Returns
         ---
@@ -428,7 +481,7 @@ class OnboardSoftware:
         TODO: Test to see if detector images are same dimension as the dark frame
         '''
         return detector_images
-        #return sunpy.map.MapSequence([map - dark_frame / map.meta['EXPOSURE'] for map in detector_images]) # TODO: Won't work until we have something sensible returned for make_dark_frame()
+        #return sunpy.map.MapSequence([map - self.dark_frame / map.meta['EXPOSURE'] for map in detector_images]) # TODO: Won't work until we have something sensible returned for make_dark_frame()
 
 
     def apply_jitter(self, onboard_processed_images): # Note really onboard software, but this is the place in the logic it belongs

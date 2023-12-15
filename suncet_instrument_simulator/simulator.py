@@ -115,20 +115,19 @@ class Simulator:
         self.detector_images_pure = self.hardware.convert_to_electrons(self.radiance_maps_pure, apply_noise=False)
         self.hardware.make_dark_frame()
         self.hardware.make_read_frame()
-        self.hardware.make_spike_mask()
+        self.hardware.make_spike_masks(self.detector_images)
         self.hardware.make_hot_pixel_mask()
         self.hardware.make_dead_pixel_mask()
     
 
     def __simulate_detector(self):
-        self.detector_images = self.hardware.combine_signal_and_noise(self.detector_images, self.detector_images_pure)
+        self.detector_images = self.hardware.combine_signal_and_noise(self.detector_images)
         self.detector_images = self.hardware.convert_to_dn(self.detector_images)
-        self.detector_images = self.hardware.apply_screwy_pixels(self.detector_images, self.spike_frame)    
 
 
     def __apply_camera_software(self):
         if self.config.subtract_dark:
-            self.onboard_processed_images = self.onboard_software.subtract_dark(self.detector_images, self.dark_frame)
+            self.onboard_processed_images = self.onboard_software.subtract_dark(self.detector_images)
         else: 
             self.onboard_processed_images = self.detector_images
         self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
