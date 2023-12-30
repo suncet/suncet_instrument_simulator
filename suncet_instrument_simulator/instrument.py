@@ -285,7 +285,11 @@ class Hardware:
     
 
     def __apply_fano_noise(self, detector_image):
-        noisy_data = np.random.poisson(lam=detector_image.data) * np.sqrt(self.config.fano_factor)
+        sigma = np.sqrt(detector_image.data * self.config.fano_factor)
+        gaussian_noise = np.random.normal(0, sigma, size=detector_image.data.shape) # TODO: Fano isn't _really_ Gaussian in shape. It's like Poisson but narrowed by the Fano factor... but that's not quite right either because it can be negative (i.e., slightly fewer than the typical number of photoelectrons generated). The distribution is tiny though, so the precise distribution doesn't matter much. Gaussian gets the job done.
+        noisy_data = np.clip(detector_image.data + gaussian_noise, a_min=0, a_max=None) # negative electrons is unphysical
+        noisy_data = np.rint(noisy_data).astype(int) # can only have integer numbers of electrons
+
         return sunpy.map.Map(noisy_data, detector_image.meta)
 
 
