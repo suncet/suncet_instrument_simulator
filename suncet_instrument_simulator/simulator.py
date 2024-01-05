@@ -12,7 +12,7 @@ import numpy as np
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
 
 class Simulator:
-    def __init__(self, config_filename=os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'):
+    def __init__(self, config_filename=os.getcwd() + '/config_files/config_default.ini'):
         self.config_filename = config_filename
         self.config = self.__read_config(config_filename)
         self.radiance_maps = 'not yet loaded'
@@ -139,8 +139,37 @@ class Simulator:
 
 
     def __calculate_snr(self):
-        pass # TODO: implement calculate_snr
+        # generate no-noise image with compatible parameters to compare to simulated image
+        composite_images_pure = self.hardware.convert_to_dn(self.detector_images_pure)
+        composite_images_pure = self.onboard_software.filter_out_particle_hits(composite_images_pure)
+        composite_image_pure = self.onboard_software.create_composite(composite_images_pure)
+        composite_image_pure_binned = self.onboard_software.bin_image(composite_image_pure)
 
+        # generate pure noise image
+        noise_image = self.onboard_processed_images.data - composite_image_pure_binned.data
+
+        # get array size
+        xsize = int(composite_image_pure_binned.dimensions.x.value)
+        ysize = int(composite_image_pure_binned.dimensions.y.value)
+
+        # array to receive local stddev of noise array
+        local_std = np.zeros((ysize, xsize))
+        # below is experimental, not used
+        # local_rms_mean = np.zeros((ysize, xsize))
+
+        window_min = int(np.floor(self.config.SNR_window.value/2))
+        window_max = int(np.ceil(self.config.SNR_window.value/2))
+
+        for x in range(0, xsize ):
+            for y in range(0, ysize):
+                noise_window = noise_image[max(0, y - window_min): min(ysize, y + window_max),
+                                           max(0, x - window_min): min(xsize, x + window_max)]
+                window_elements = sum(len(x) for x in noise_window)
+                local_std[y, x] = np.std(noise_window)
+                # experimental not used
+                # local_rms_mean[y, x] = np.sum(noise_window**2.0)/window_elements
+
+        self.snr_image = composite_image_pure_binned/local_std
     
     def __complete_metadata(self):
         metadata_definition = self.__load_metadata_definition()
@@ -223,6 +252,7 @@ class Simulator:
 
 
     def __output_snr(self):
+
         pass # TODO: implement output_snr()
 
 

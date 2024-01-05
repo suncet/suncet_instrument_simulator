@@ -22,6 +22,7 @@ class Config:
         self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
         self.compress_image = config['behavior'].getboolean('compress_image')
         self.timesteps_to_process = json.loads(config.get('behavior', 'timesteps_to_process'))
+        self.SNR_window = config['behavior'].getint('SNR_window') * u.pix
         self.model_directory_name = config['behavior']['model_directory_name']
         self.em_directory_name = config['behavior']['em_directory_name']
         self.map_directory_name = config['behavior']['map_directory_name']
@@ -71,6 +72,6 @@ class Config:
 
 
 if __name__ == "__main__":
-    filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
+    filename = os.getcwd() + '/config_files/config_default.ini'
     config = Config(filename)
     print(config.apply_psf)  # Just an example to see something return when running as a script
