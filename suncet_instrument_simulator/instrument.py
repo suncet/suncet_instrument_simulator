@@ -4,6 +4,7 @@ import warnings
 from glob import glob
 import numpy as np
 from scipy.integrate import simps
+from scipy.ndimage import shift, gaussian_filter
 from pandas import read_fwf, read_csv
 import astropy.units as u
 from astropy.coordinates import SkyCoord
@@ -489,8 +490,39 @@ class OnboardSoftware:
 
 
     def apply_jitter(self, onboard_processed_images): # Note really onboard software, but this is the place in the logic it belongs
+        jitter_arcsec_per_timestep = self.config.jitter * self.config.model_timestep # Units work easily here. This is going to be used for a single, coherent, instantaneous movement affecting the position of every feature in the image but not their sharpness. 
+
+        for exposure_type, image_dict in onboard_processed_images.items():
+            if exposure_type == 'short exposure':
+                exposure_time = self.config.exposure_time_short
+            else:
+                exposure_time = self.config.exposure_time_long
+
+            blur_amount = self.config.jitter * np.sqrt(exposure_time) # The units here don't work but the sqrt is how we account for this being a continuous accumulation of the random walk. Features maintain their position, but lose their definition. 
+
+            # Apply jitter (shift and blur) to each image
+            for index, image in image_dict.items():
+                # Convert jitter from arcsec to pixels
+                scale = image.scale[0]  # Assuming uniform scale in x and y
+                jitter_pixels = jitter_arcsec_per_timestep / scale
+                blur_pixels = blur_amount / scale
+
+                # Generate random jitter offsets for shift
+                dx, dy = np.random.normal(0, jitter_pixels.value, 2)
+
+                # Shift the image data to simulate the instantaneous start/stop boundary between timesteps (cadence steps)
+                shifted_data = shift(image.data, shift=[dy, dx], mode='nearest')
+
+                # Apply Gaussian blur to simulate motion during exposure
+                blurred_data = gaussian_filter(shifted_data, sigma=blur_pixels.value)
+
+                # Make sure that the shifting and blurring don't blow up in edge cases by clipping to the input -- verified that the mean is nearly identical
+                blurred_data_clipped = np.clip(blurred_data, a_min=np.min(image.data), a_max=np.max(image.data))
+
+                # Create a new SunPy map with the jittered and blurred data
+                onboard_processed_images[exposure_type][index] = sunpy.map.Map(blurred_data_clipped, image.meta)
+
         return onboard_processed_images
-        pass # TODO: implement apply_jitter (will be different for the short exposure central disk and long exposure off-disk)
 
     
     def filter_out_particle_hits(self, onboard_processed_images):        
@@ -614,8 +646,6 @@ class OnboardSoftware:
     def __display_data(data): 
         import matplotlib.pyplot as plt
         plt.imshow(np.log10(np.clip(data, 0.1, None)))
-
-
 
 
 if __name__ == "__main__":

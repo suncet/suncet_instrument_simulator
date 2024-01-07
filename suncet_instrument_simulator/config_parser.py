@@ -59,6 +59,7 @@ class Config:
         # shdr
         self.exposure_time_short = config['shdr'].getfloat('exposure_time_short') * u.second
         self.exposure_time_long = config['shdr'].getfloat('exposure_time_long') * u.second
+        self.model_timestep = config['shdr'].getfloat('model_timestep') * u.second
         self.num_short_exposures_to_stack = config['shdr'].getint('num_short_exposures_to_stack')
         self.num_long_exposures_to_stack = config['shdr'].getint('num_long_exposures_to_stack')
         self.num_inner_rows_for_short_exposure = config['shdr'].getint('num_inner_rows_for_short_exposure')
