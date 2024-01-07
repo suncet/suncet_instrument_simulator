@@ -203,7 +203,8 @@ class Simulator:
                 noise_window = self.onboard_processed_images.data[y:y+window_size, x:x+window_size]
                 snr_map[y, x] = snr_in_window(signal_window, noise_window)
 
-        self.snr_image = data/local_std
+        self.snr_image = snr_map
+
 
     def __plot_snr(self):
         import matplotlib.pyplot as plt
@@ -280,7 +281,6 @@ class Simulator:
         plt.ylim(0, max_snr)
         plt.grid(True)
         plt.show()
-
 
         pass
 
