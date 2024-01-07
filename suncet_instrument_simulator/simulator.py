@@ -12,7 +12,7 @@ import numpy as np
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
 
 class Simulator:
-    def __init__(self, config_filename=os.getcwd() + '/config_files/config_default.ini'):
+    def __init__(self, config_filename=os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'):
         self.config_filename = config_filename
         self.config = self.__read_config(config_filename)
         self.radiance_maps = 'not yet loaded'
@@ -169,8 +169,122 @@ class Simulator:
                 # experimental not used
                 # local_rms_mean[y, x] = np.sum(noise_window**2.0)/window_elements
 
-        self.snr_image = composite_image_pure_binned/local_std
-    
+        # deal with 0 noise pixels that would blow up the SNR
+        zero_noise_indices = np.where(local_std == 0)
+        local_std[zero_noise_indices] = 1
+        data = composite_image_pure_binned.data
+        data[zero_noise_indices] = float('inf')
+
+        self.snr_image = data/local_std
+
+    def __calculate_snr_chatgpt(self): # chatGPT method
+        def snr_in_window(signal, signal_and_noise):
+            mean_signal = np.mean(signal)
+            std_noise = np.std(signal_and_noise - signal)
+            return mean_signal / std_noise if std_noise != 0 else float('inf')
+        
+        composite_images_pure = self.hardware.convert_to_dn(self.detector_images_pure)
+        composite_images_pure = self.onboard_software.filter_out_particle_hits(composite_images_pure)
+        composite_image_pure = self.onboard_software.create_composite(composite_images_pure)
+        composite_image_pure_binned = self.onboard_software.bin_image(composite_image_pure)
+
+        height, width = composite_image_pure_binned.data.shape
+
+        # Size of the sliding window
+        window_size = 10
+
+        # Initialize SNR map
+        snr_map = np.zeros((height - window_size + 1, width - window_size + 1))
+
+        # Slide the window across the image
+        for y in range(height - window_size + 1):
+            for x in range(width - window_size + 1):
+                signal_window = composite_image_pure_binned.data[y:y+window_size, x:x+window_size]
+                noise_window = self.onboard_processed_images.data[y:y+window_size, x:x+window_size]
+                snr_map[y, x] = snr_in_window(signal_window, noise_window)
+
+        self.snr_image = data/local_std
+
+    def __plot_snr(self):
+        import matplotlib.pyplot as plt
+        from scipy.ndimage import gaussian_filter
+
+        snr_map = self.snr_image
+
+        # Apply a Gaussian filter to smooth the SNR map
+        sigma = 4  # Standard deviation for Gaussian kernel
+        smoothed_snr_map = gaussian_filter(snr_map, sigma=sigma)
+
+        # Define a range of contour levels for better visualization
+        max_snr = 40
+        contour_levels = np.linspace(10, max_snr, num=19)  # 20 levels from 10 to max_snr
+
+        # Optionally, clip the SNR values to a maximum for better color scaling
+        clip_max_snr = max_snr  # Adjust this value as needed
+        smoothed_snr_map_clipped = np.clip(smoothed_snr_map, 0, clip_max_snr)
+
+        # Create a figure and a set of subplots
+        fig, ax = plt.subplots(figsize=(10, 10))
+
+        # Display the image
+        im = ax.imshow(self.onboard_processed_images.data, cmap='gray', origin='lower')
+
+        # Overlaying the smoothed SNR contours
+        contour_plot = ax.contourf(smoothed_snr_map_clipped, levels=contour_levels, cmap='viridis', alpha=0.5)
+
+        # Create colorbar
+        cbar = fig.colorbar(contour_plot, ax=ax, label='SNR', fraction=0.035, pad=0.04)
+
+        # Set the title and labels
+        ax.set_title('Signal + Noise Image with Smoothed SNR Contours')
+        ax.set_xlabel('X Pixel')
+        ax.set_ylabel('Y Pixel')
+
+        # Adjusting the ticks for solar radii
+        height, width = self.onboard_processed_images.data.shape
+        center_x, center_y = width // 2, height // 2
+        scale_factor = 100  # 100 pixels per solar radius
+
+        x_ticks = np.arange(0, width, scale_factor)
+        x_labels = (x_ticks - center_x) / scale_factor
+        y_ticks = np.arange(0, height, scale_factor)
+        y_labels = (y_ticks - center_y) / scale_factor
+
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels([f"{x:.1f}" for x in x_labels])
+        ax.set_yticks(y_ticks)
+        ax.set_yticklabels([f"{y:.1f}" for y in y_labels])
+
+        ax.set_xlabel("Solar Radii")
+        ax.set_ylabel("Solar Radii")
+
+        plt.show()
+
+        vertical_center = smoothed_snr_map.shape[0] // 2
+        horizontal_trace = smoothed_snr_map[vertical_center, :]
+
+        # Create the plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(horizontal_trace)
+
+        # Adjust the x-axis to represent solar radii
+        num_pixels = len(horizontal_trace)
+        x_ticks = np.arange(0, num_pixels, scale_factor)
+        x_labels = (x_ticks - num_pixels // 2) / scale_factor
+        plt.xticks(x_ticks, [f"{x:.1f}" for x in x_labels])
+
+        # Set labels and title
+        plt.title('SNR Horizontal Trace at Vertical Center')
+        plt.xlabel('Solar Radii')
+        plt.ylabel('SNR')
+        plt.ylim(0, max_snr)
+        plt.grid(True)
+        plt.show()
+
+
+        pass
+
+
     def __complete_metadata(self):
         metadata_definition = self.__load_metadata_definition()
         map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
