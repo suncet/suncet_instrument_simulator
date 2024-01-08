@@ -177,6 +177,7 @@ class Simulator:
 
         self.snr_image = data/local_std
 
+
     def __calculate_snr_chatgpt(self): # chatGPT method
         def snr_in_window(signal, signal_and_noise):
             mean_signal = np.mean(signal)
@@ -281,6 +282,14 @@ class Simulator:
         plt.ylim(0, max_snr)
         plt.grid(True)
         plt.show()
+
+
+        width = smoothed_snr_map.shape[1]
+        center_x = width // 2
+        pixel_position = center_x + int(3.5 * scale_factor)
+        vertical_center = smoothed_snr_map.shape[0] // 2
+        snr_at_3_5 = smoothed_snr_map[vertical_center, pixel_position]
+        print('SNR at +3.5 Rs = {:.0f}'.format(snr_at_3_5))
 
         pass
 
