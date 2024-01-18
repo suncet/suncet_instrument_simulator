@@ -509,7 +509,10 @@ class OnboardSoftware:
                 blur_pixels = blur_amount / scale
 
                 # Generate random jitter offsets for shift
-                dx, dy = np.random.normal(0, jitter_pixels.value, 2)
+                angle = np.random.uniform(0, 2*np.pi)
+                jitter_magnitude = np.random.normal(0, jitter_pixels.value)
+                dx = jitter_magnitude * np.cos(angle)
+                dy = jitter_magnitude * np.sin(angle)
 
                 # Shift the image data to simulate the instantaneous start/stop boundary between timesteps (cadence steps)
                 shifted_data = shift(image.data, shift=[dy, dx], mode='nearest')
