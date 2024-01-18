@@ -305,6 +305,7 @@ class Hardware:
         
         return detector_image
     
+
     def make_dark_frame(self):
         if self.config.detector_temperature.unit != u.deg_C: 
             raise u.UnitsError("The detector temperature must be in units of Celsius. Either convert in the config or edit the math in this function accordingly.")
@@ -618,11 +619,13 @@ class OnboardSoftware:
             new_dimensions = [new_x_dim, new_y_dim] * u.pixel
             
             onboard_processed_images = onboard_processed_images.resample(new_dimensions, method='nearest')
+            onboard_processed_images *= (xbin * ybin) # Conserve energy. DN come from electrons. resample doesn't account for the fact that the total number of electrons (DN) recorded across the detector is the same regardless of how you bin them in software
             onboard_processed_images.meta['cdelt1'] = self.config.plate_scale.value * xbin # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
             onboard_processed_images.meta['cdelt2'] = self.config.plate_scale.value * ybin # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
 
         return onboard_processed_images
     
+
     def compress_image(self, onboard_processed_images): 
         normalized_data = (onboard_processed_images.data - np.min(onboard_processed_images.data)) / (np.max(onboard_processed_images.data) - np.min(onboard_processed_images.data))
         max_value = 2**self.config.readout_bits.value - 1
@@ -643,6 +646,7 @@ class OnboardSoftware:
         image = Image.fromarray(scaled_data, mode=mode)
         return sunpy.map.Map(np.array(image), onboard_processed_images.meta)
     
+
     def __display_data(data): 
         import matplotlib.pyplot as plt
         plt.imshow(np.log10(np.clip(data, 0.1, None)))
