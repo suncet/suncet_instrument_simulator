@@ -56,7 +56,18 @@ class Hardware:
    
 
     def __load_mirror_data(self, filename):
-        return read_fwf(os.getenv('suncet_data') + '/mirror_reflectivity/' + filename, skiprows=18, header=0, names=['wavelength', 'reflectivity']) # wavelength should be in Angstroms, reflectivity as a fraction
+        if 'measurement' in filename: 
+            data = read_csv(os.getenv('suncet_data') + '/mirror_reflectivity/' + filename, header=0)
+            if 'nm' in data.columns[0]: 
+                data[data.columns[0]] *= 10 # Converts nm to Angstrom
+            elif '[A]' or 'Angstrom' in data.columns[0]: 
+                warnings.warn('Found indication that coating wavelength data is in angstroms so making the ASSUMPTION that this is actually true.')
+            else: 
+                raise ValueError('Do not know what units the coating wavelength is in.')
+            data.columns = ['wavelength', 'reflectivity']
+        else: 
+            data = read_fwf(os.getenv('suncet_data') + '/mirror_reflectivity/' + filename, skiprows=18, header=0, names=['wavelength', 'reflectivity'])
+        return data # wavelength should be in Angstroms, reflectivity as a fraction
 
 
     def __interpolate_filter_transmission(self): 
