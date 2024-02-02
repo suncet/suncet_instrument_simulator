@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import numpy as np
 from astropy.io import fits
 import os
 from glob import glob
 import imageio
+
 
 def apply_radial_filter(data, sigma):
     # Determine the center of the image
@@ -23,20 +25,46 @@ def apply_radial_filter(data, sigma):
     return filtered_data
 
 
-def plot_scaled_image(data, title, output_filename, scale=None):
-    plt.figure(figsize=(24, 24))
+def replace_negative_values(data): 
+    neg_indices = np.where(data < 0)
+
+    for i, j in zip(*neg_indices):
+        # Get neighboring indices
+        neighbors = data[max(0, i-1):i+2, max(0, j-1):j+2]
+
+        # Calculate mean of neighbors, excluding the negative value itself
+        mean_val = np.mean(neighbors[neighbors >= 0])
+
+        # Replace the negative value with the mean
+        data[i, j] = mean_val
+
+    return data
+
+
+def plot_scaled_image(data, output_filename, scale=None):
+    height, width = data.shape[:2]
+    
+    # Matplotlib for some reason makes saving an image to disk with the exact right dimensions and no white space non-trivial, hence all this elaborate setup
+    fig = plt.figure(frameon=False)
+    fig.set_size_inches(width / fig.dpi, height / fig.dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+    
     scale_funcs = {
-        'log': lambda x: np.log10(np.clip(x, 0.1, None)),
+        'log': lambda x: np.log10(np.clip(x, a_min=0.1, a_max=None)),
         'sqrt': np.sqrt,
         '1/4': lambda x: x**(1/4),
-        '1/8': lambda x: np.clip(x**(1/8), 0.5, None),
+        '1/3': lambda x: x**(1/3),
+        '1/8': lambda x: np.clip(x**(1/8), a_min=0.5, a_max=None),
     }
     scale_func = scale_funcs.get(scale, lambda x: x)  # Default to no scaling if not found
     
-    plt.imshow(scale_func(data), cmap='inferno')
-    plt.axis('off')
-    plt.savefig(output_filename, bbox_inches='tight', pad_inches=0)
+    # TODO:
+    ax.imshow(scale_func(data), vmin=0.08, vmax=21.0, cmap='inferno', aspect='auto')
+    plt.savefig(output_filename, dpi=fig.dpi, transparent=True)
     plt.close()
+
 
 path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
 filenames = 'config_default_OBS_2023-02-14T17:00:00.000_*.fits'
@@ -46,13 +74,14 @@ image_files = []
 for file in fits_files:
     with fits.open(file) as hdul:
         data = hdul[0].data
+        data = replace_negative_values(data)
         filtered_data = apply_radial_filter(data, 300)
-
+        
     output_filename = os.getenv('suncet_data')+ '/synthetic/images and movies/' + f"{file.split('.')[1]}.png"
-    plot_scaled_image(filtered_data, '', output_filename, scale='1/4')
+    plot_scaled_image(filtered_data, output_filename, scale='1/4')
     image_files.append(output_filename)
 
-with imageio.get_writer(os.getenv('suncet_data')+ '/synthetic/images and movies/movie.mp4', fps=10) as writer:
+with imageio.get_writer(os.getenv('suncet_data')+ '/synthetic/images and movies/movie.mp4', fps=20) as writer:
     for filename in image_files:
         image = imageio.imread(filename)
         writer.append_data(image)
