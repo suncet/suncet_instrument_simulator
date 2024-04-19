@@ -151,11 +151,7 @@ class Hardware:
 
 
     def apply_mirror_scattered_light_psf(self, radiance_maps):
-        bla = self.__apply_function_to_leaves(radiance_maps, self.__convolve_mirror_scatter)
-
-
-        return radiance_maps
-        pass # TODO: implement apply_mirror_scattered_light_psf
+        return self.__apply_function_to_leaves(radiance_maps, self.__convolve_mirror_scatter)
 
 
     def __convolve_mirror_scatter(self, map):
