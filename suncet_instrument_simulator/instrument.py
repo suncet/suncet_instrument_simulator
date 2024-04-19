@@ -434,7 +434,6 @@ class Hardware:
         return self.__apply_function_to_leaves(detector_images, self.__add_hot_pixels_to_single_map, hot_pixel_values=hot_pixel_values) 
 
 
-
     def __generate_hot_pixel_values(self):
         dim_x, dim_y = int(self.config.image_dimensions[0].value), int(self.config.image_dimensions[1].value)
         
@@ -448,7 +447,7 @@ class Hardware:
 
     def __add_hot_pixels_to_single_map(self, map, hot_pixel_values=None):
         data = map.data.copy()
-        data[self.hot_pixel_mask] += hot_pixel_values[self.hot_pixel_mask].value
+        data[self.hot_pixel_mask] += hot_pixel_values[self.hot_pixel_mask].value  # FIXME: this underrepresents the hot pixels because it requires that the randomly generated mask is true at pixel x, y and also that the separately randomly generated hot pixel value at x, y is ≠0. 
         return sunpy.map.Map(data, map.meta)
     
 
@@ -619,7 +618,7 @@ class OnboardSoftware:
             ybin = self.config.num_pixels_to_bin[1]
 
         # See input array shape
-        array_shape=np.shape(onboard_processed_images.data)
+        array_shape = np.shape(onboard_processed_images.data)
 
         # Check if a number is a factor of input array dimensions.
         if array_shape[1] % xbin != 0:
