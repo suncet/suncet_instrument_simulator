@@ -9,6 +9,8 @@ from pandas import read_fwf, read_csv
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy import constants as const
+import astropy.io.fits as fits
+from astropy.convolution import convolve_fft
 import sunpy.map
 from pillow_jpls import Image
 from sunpy.coordinates import frames
@@ -18,10 +20,28 @@ class Hardware:
     def __init__(self, config):
         self.config = config
         self.coating_name = self.__get_coating_name()
+        if self.config.apply_mirror_scattered_light_psf: 
+            self.mirror_scatter_psf = self.__load_mirror_scatter_psf()
+        if self.config.apply_mesh_diffraction:
+            self.mesh_diffraction_psf = self.__load_mesh_diffraction_psf()
 
 
     def __get_coating_name(self):
         return os.path.basename(self.config.mirror_coating_reflectivity_filename).split('_1')[0] 
+    
+
+    def __load_mirror_scatter_psf(self):
+        filename = self.config.mirror_scatter_filename
+        psf = fits.open(os.getenv('suncet_data') + '/psf_data/' + filename)[0].data
+        psf_crop = psf[2:-1, 2:-1] # because convolve_fft requires us to have an odd number of rows
+        psf_norm = psf_crop/np.sum(psf_crop)
+
+        return psf_norm
+
+
+    def __load_mesh_diffraction_psf(self):
+        # TODO: implement load_mesh_diffraction
+        pass
 
 
     def store_target_wavelengths(self, radiance_maps): # Will interpolate/calculate any subsequent wavelength-dependent quantities to this "target" wavelength array
@@ -130,14 +150,17 @@ class Hardware:
         return self.__apply_function_to_leaves(radiance_maps, lambda x: x * pixel_area_steradians)
 
 
-    def apply_psf(self, radiance_maps):
-        return radiance_maps
-        pass # TODO: implement apply_psf
+    def apply_mirror_scattered_light_psf(self, radiance_maps):
+        bla = self.__apply_function_to_leaves(radiance_maps, self.__convolve_mirror_scatter)
 
 
-    def apply_scattered_light_psf(self, radiance_maps):
         return radiance_maps
-        pass # TODO: implement apply_scattered_light_psf
+        pass # TODO: implement apply_mirror_scattered_light_psf
+
+
+    def __convolve_mirror_scatter(self, map):
+        convolved_data = convolve_fft(map.data, self.mirror_scatter_psf)
+        return sunpy.map.Map(convolved_data, map.meta)
 
     
     def apply_effective_area(self, radiance_maps):
