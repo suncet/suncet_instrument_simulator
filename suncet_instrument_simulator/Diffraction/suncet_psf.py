@@ -1,5 +1,6 @@
 """
 Calculate the point spread function (PSF) for the SunCET telescopes.
+Kluged together from AIApy PSF generation function
 """
 import numpy as np
 
@@ -7,7 +8,6 @@ import astropy.units as u
 
 try:
     import cupy
-
     HAS_CUPY = True
 except ImportError:
     HAS_CUPY = False
