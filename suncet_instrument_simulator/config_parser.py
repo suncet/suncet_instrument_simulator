@@ -16,9 +16,8 @@ class Config:
 
         # behavior
         self.compute_new_radiance_maps = config['behavior'].getboolean('compute_new_radiance_maps')
-        self.apply_psf = config['behavior'].getboolean('apply_psf')
         self.apply_mesh_diffraction = config['behavior'].getboolean('apply_mesh_diffraction')
-        self.apply_mirror_scatter = config['behavior'].getboolean('apply_scattered_light_psf')
+        self.apply_mirror_scattered_light_psf = config['behavior'].getboolean('apply_mirror_scattered_light_psf')
         self.apply_particle_spikes = config['behavior'].getboolean('apply_particle_spikes')
         self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
         self.compress_image = config['behavior'].getboolean('compress_image')
@@ -40,6 +39,7 @@ class Config:
         self.mirror_coating_reflectivity_filename = config['telescope']['mirror_coating_reflectivity_filename']
         self.filter_entrance_transmission_filename = config['telescope']['filter_entrance_transmission_filename']
         self.filter_focal_plane_transmission_filename = config['telescope']['filter_focal_plane_transmission_filename']
+        self.mirror_scatter_filename = config['telescope']['mirror_scatter_filename']
 
         # detector
         self.detector_physical_area = config['detector'].getfloat('detector_physical_area') * u.cm**2
