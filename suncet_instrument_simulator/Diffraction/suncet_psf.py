@@ -15,7 +15,7 @@ except ImportError:
 __all__ = ["psf", "filter_mesh_parameters", "_psf"]
 
 
-def filter_mesh_parameters(lambda_value, angle_arm=None):
+def filter_mesh_parameters(lambda_value, angle_arm=None, lpi=None):
     """
     Geometric parameters for meshes in SunCET filters used to calculate the point
     spread function.
@@ -50,7 +50,10 @@ def filter_mesh_parameters(lambda_value, angle_arm=None):
     psf : Calculate the composite point spread function
     """
     #todo: Get key parameters from config instead of hard coding
-    lines_per_inch = 20.0 # units not supported
+    if lpi is None:
+         lines_per_inch = 20.0 # units not supported
+    else:
+        lines_per_inch = lpi
     line_pitch_inches = 1.0/lines_per_inch # still no units
     inch_per_micron = 3.93701E-5
     line_pitch_micron = line_pitch_inches/inch_per_micron * u.um
@@ -69,9 +72,9 @@ def filter_mesh_parameters(lambda_value, angle_arm=None):
     focal_len = 300 * u.mm
     focal_plane_filter_dist = 3.5 * u.mm
 
-    psf_80pct_arcsec = 20. * u.arcsec # PSF 80% encircled energy width, using typical value from Alan's analysis
+    psf_80pct_arcsec = 25. * u.arcsec # PSF 80% encircled energy width, using typical value from Alan's analysis
     psf_80pct_px = psf_80pct_arcsec / px_scale  # get 80% encircled in pixels
-    psf_sigma = psf_80pct_px / (2 * 1.28155) # Compute sigma from 80% encircled value
+    psf_sigma = psf_80pct_px  * 0.6178878 # Compute sigma from 80% encircled value
 
     if angle_arm is None:
         angle_arm = [45, -45] * u.deg
@@ -90,7 +93,7 @@ def filter_mesh_parameters(lambda_value, angle_arm=None):
     }
 
 
-def psf(channel: u.angstrom, use_preflightcore=False, diffraction_orders=None, angle_arm = None, use_gpu=True):
+def psf(channel: u.angstrom, use_preflightcore=False, diffraction_orders=None, angle_arm = None, lpi=None, use_gpu=True):
     r"""
     Calculate the composite PSF for a given channel, including diffraction and
     core effects.
@@ -185,7 +188,7 @@ def psf(channel: u.angstrom, use_preflightcore=False, diffraction_orders=None, a
             AIA PSF Characterization and Deconvolution
             <https://sohoftp.nascom.nasa.gov/solarsoft/sdo/aia/idl/psf/DOC/psfreport.pdf>`__
     """
-    meshinfo = filter_mesh_parameters(channel, angle_arm = angle_arm)
+    meshinfo = filter_mesh_parameters(channel, angle_arm = angle_arm, lpi = lpi)
     angles_entrance = meshinfo["angle_arm"]
     angles_focal_plane = u.Quantity([45.0, -45.0], "deg")
     if diffraction_orders is None:
