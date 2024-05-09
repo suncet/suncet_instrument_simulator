@@ -14,8 +14,7 @@ except ImportError:
 
 __all__ = ["psf", "filter_mesh_parameters", "_psf"]
 
-
-def filter_mesh_parameters(lambda_value, angle_arm=None, lpi=None):
+def filter_mesh_parameters(lambda_value, angle_arm=None, angles_focal_plane=None, lpi=None):
     """
     Geometric parameters for meshes in SunCET filters used to calculate the point
     spread function.
@@ -77,11 +76,14 @@ def filter_mesh_parameters(lambda_value, angle_arm=None, lpi=None):
     psf_sigma = psf_80pct_px  * 0.6178878 # Compute sigma from 80% encircled value
 
     if angle_arm is None:
-        angle_arm = [45, -45] * u.deg
+        angle_arm = [0, 90] * u.deg
+    if angles_focal_plane is None:
+        angles_focal_plane = [90, 0] * u.deg
 
     return {
             "wavelength": lambda_ang,
             "angle_arm": angle_arm,
+            "angles_focal_plane": angles_focal_plane,
             "error_angle_arm": [0.02, 0.02] * u.deg,
             "spacing_e": theta_arcsec/px_scale,
             "mesh_pitch": line_pitch_micron,
@@ -93,7 +95,8 @@ def filter_mesh_parameters(lambda_value, angle_arm=None, lpi=None):
     }
 
 
-def psf(channel: u.angstrom, use_preflightcore=False, diffraction_orders=None, angle_arm = None, lpi=None, use_gpu=True):
+def psf(channel: u.angstrom, use_preflightcore=False, diffraction_orders=None, angle_arm=None, angles_focal_plane=None,
+        lpi=None, output_size=None, use_gpu=True):
     r"""
     Calculate the composite PSF for a given channel, including diffraction and
     core effects.
@@ -188,16 +191,19 @@ def psf(channel: u.angstrom, use_preflightcore=False, diffraction_orders=None, a
             AIA PSF Characterization and Deconvolution
             <https://sohoftp.nascom.nasa.gov/solarsoft/sdo/aia/idl/psf/DOC/psfreport.pdf>`__
     """
-    meshinfo = filter_mesh_parameters(channel, angle_arm = angle_arm, lpi = lpi)
+    if output_size is None:
+        output_size = [1500, 1500]
+    meshinfo = filter_mesh_parameters(channel, angle_arm = angle_arm, angles_focal_plane= angles_focal_plane, lpi = lpi)
     angles_entrance = meshinfo["angle_arm"]
-    angles_focal_plane = u.Quantity([45.0, -45.0], "deg")
+    angles_focal_plane = meshinfo["angles_focal_plane"]
     if diffraction_orders is None:
         diffraction_orders = np.arange(-1500, 1500, 1)
-    psf_entrance = _psf(meshinfo, angles_entrance, diffraction_orders, use_gpu=use_gpu)
+    psf_entrance = _psf(meshinfo, angles_entrance, diffraction_orders, output_size, use_gpu=use_gpu)
     psf_focal_plane = _psf(
         meshinfo,
         angles_focal_plane,
         diffraction_orders,
+        output_size,
         focal_plane=True,
         use_gpu=use_gpu,
     )
@@ -213,8 +219,8 @@ def psf(channel: u.angstrom, use_preflightcore=False, diffraction_orders=None, a
     return psf
 
 
-def _psf(meshinfo, angles, diffraction_orders, focal_plane=False, use_gpu=True):
-    psf = np.zeros((1500, 1500), dtype=float)
+def _psf(meshinfo, angles, diffraction_orders, output_size, focal_plane=False, use_gpu=True):
+    psf = np.zeros((output_size[0], output_size[1]), dtype=float)
     # If cupy is available, cast to a cupy array
     if HAS_CUPY and use_gpu:
         psf = cupy.array(psf)
