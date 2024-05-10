@@ -100,10 +100,10 @@ class Simulator:
         self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
         self.radiance_maps = self.hardware.interpolate_spatial_resolution(self.radiance_maps)
         self.radiance_maps = self.hardware.convert_steradians_to_pixels(self.radiance_maps)
-        if self.config.apply_psf: 
-            self.radiance_maps = self.hardware.apply_psf(self.radiance_maps)
-        if self.config.apply_scattered_light_psf:
-            self.radiance_maps = self.hardware.apply_scattered_light_psf(self.radiance_maps)
+        if self.config.apply_mesh_diffraction:
+            self.radiance_maps = self.hardware.apply_diffraction_psf(self.radiance_maps)
+        if self.config.apply_mirror_scattered_light_psf:
+            self.radiance_maps = self.hardware.apply_mirror_scattered_light_psf(self.radiance_maps)
         self.radiance_maps = self.hardware.apply_effective_area(self.radiance_maps)
         self.radiance_maps = self.hardware.apply_exposure_times(self.radiance_maps)
 

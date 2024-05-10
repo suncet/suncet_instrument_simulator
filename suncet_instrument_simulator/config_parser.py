@@ -40,6 +40,7 @@ class Config:
         self.filter_entrance_transmission_filename = config['telescope']['filter_entrance_transmission_filename']
         self.filter_focal_plane_transmission_filename = config['telescope']['filter_focal_plane_transmission_filename']
         self.mirror_scatter_filename = config['telescope']['mirror_scatter_filename']
+        self.filter_diffraction_filename = config['telescope']['filter_diffraction_filename']
 
         # detector
         self.detector_physical_area = config['detector'].getfloat('detector_physical_area') * u.cm**2

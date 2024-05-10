@@ -27,22 +27,21 @@ class Hardware:
 
 
     def __get_coating_name(self):
-        return os.path.basename(self.config.mirror_coating_reflectivity_filename).split('_1')[0] 
-    
+        return os.path.basename(self.config.mirror_coating_reflectivity_filename).split('_1')[0]
 
     def __load_mirror_scatter_psf(self):
         filename = self.config.mirror_scatter_filename
-        psf = fits.open(os.getenv('suncet_data') + '/psf_data/' + filename)[0].data
-        psf_crop = psf[2:-1, 2:-1] # because convolve_fft requires us to have an odd number of rows
-        psf_norm = psf_crop/np.sum(psf_crop)
-
-        return psf_norm
+        full_path = os.getenv('suncet_data') + '/mirror_scatter/' + filename
+        psf = fits.open(full_path)[0].data
+        psf_crop = psf[0:-1, 0:-1] # because convolve_fft requires us to have an odd number of rows
+        return psf_crop
 
 
     def __load_mesh_diffraction_psf(self):
-        # TODO: implement load_mesh_diffraction
-        pass
-
+        filename = self.config.filter_diffraction_filename
+        full_path = os.getenv('suncet_data') + '/filter_mesh_diffraction/' + filename
+        diffraction_psf = fits.open(full_path)
+        return diffraction_psf
 
     def store_target_wavelengths(self, radiance_maps): # Will interpolate/calculate any subsequent wavelength-dependent quantities to this "target" wavelength array
         if self.__is_nested_time_and_wavelength(radiance_maps):
@@ -149,15 +148,24 @@ class Hardware:
         pixel_area_steradians = (plate_scale_rad**2).to(u.steradian / (u.pix**2))
         return self.__apply_function_to_leaves(radiance_maps, lambda x: x * pixel_area_steradians)
 
+    def apply_diffraction_psf(self, radiance_maps):
+        return self.__apply_function_to_leaves(radiance_maps, self.__convolve_diffraction_psf)
+
+    def __convolve_diffraction_psf(self, map):
+        # todo: fix the bad hack to find the correct diffraction pattern
+        target_psf = self.mesh_diffraction_psf[int(map.meta['wavelnth']) - 170].data
+        target_psf_crop = target_psf[0:-1, 0:-1]
+        convolved_data = convolve_fft(map.data, target_psf_crop)
+        return sunpy.map.Map(convolved_data, map.meta)
 
     def apply_mirror_scattered_light_psf(self, radiance_maps):
         return self.__apply_function_to_leaves(radiance_maps, self.__convolve_mirror_scatter)
 
-
     def __convolve_mirror_scatter(self, map):
-        convolved_data = convolve_fft(map.data, self.mirror_scatter_psf)
+        background = convolve_fft(map.data, self.mirror_scatter_psf)
+        eta = np.sum(self.mirror_scatter_psf)
+        convolved_data = map.data * (1 - eta) + background
         return sunpy.map.Map(convolved_data, map.meta)
-
     
     def apply_effective_area(self, radiance_maps):
         '''
