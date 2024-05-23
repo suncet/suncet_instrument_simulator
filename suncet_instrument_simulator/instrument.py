@@ -155,14 +155,14 @@ class Hardware:
         # todo: fix the bad hack to find the correct diffraction pattern
         target_psf = self.mesh_diffraction_psf[int(map.meta['wavelnth']) - 170].data
         target_psf_crop = target_psf[0:-1, 0:-1]
-        convolved_data = convolve_fft(map.data, target_psf_crop)
+        convolved_data = convolve_fft(map.data, target_psf_crop, boundary='wrap', normalize_kernel=False)
         return sunpy.map.Map(convolved_data, map.meta)
 
     def apply_mirror_scattered_light_psf(self, radiance_maps):
         return self.__apply_function_to_leaves(radiance_maps, self.__convolve_mirror_scatter)
 
     def __convolve_mirror_scatter(self, map):
-        background = convolve_fft(map.data, self.mirror_scatter_psf)
+        background = convolve_fft(map.data, self.mirror_scatter_psf, boundary='wrap', normalize_kernel=False)
         eta = np.sum(self.mirror_scatter_psf)
         convolved_data = map.data * (1 - eta) + background
         return sunpy.map.Map(convolved_data, map.meta)
