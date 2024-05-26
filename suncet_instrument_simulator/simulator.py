@@ -39,6 +39,7 @@ class Simulator:
                 self.__simulate_detector()
                 self.__apply_camera_software()
                 self.__calculate_snr()
+                self.__plot_snr() # TODO: Remove this. It's just for debugging or reference. 
                 self.__complete_metadata()
                 self.__output_files()
     
@@ -74,10 +75,86 @@ class Simulator:
 
             for map in maps:
                 wavelength = str(map.wavelength)
+                #scaled_map = sunpy.map.Map(map.data * 10, map.meta) # FIXME: This is a fudge on 2024-03-28 to check what Dan's latest comparison to SUVI does
                 maps_by_index_and_wavelength[index][wavelength] = map
             
+        # FIXME: only doing the below for debugging purposes so delete it and the corresponding function
+        #self.radiance_maps = self.__make_bs_radiance_maps()
+        #self.bla = self.__make_bs_radiance_maps()
         
         self.radiance_maps = maps_by_index_and_wavelength
+
+
+    def __make_bs_radiance_maps(self):
+        height, width = 1500, 2000
+        image_array = np.zeros((height, width))
+
+        # Step 2: Adjust the rectangle drawing logic
+        num_rectangles = 5
+        intensity_step = 1e14
+
+        # Calculate the step size for each rectangle's boundary
+        height_step = height // (2 * num_rectangles)  # Dividing by 2*num_rectangles to account for top and bottom spacing
+        width_step = width // (2 * num_rectangles)  # Same for left and right
+
+        for i in range(num_rectangles):
+            top = i * height_step
+            left = i * width_step
+            bottom = height - (i * height_step)
+            right = width - (i * width_step)
+            image_array[top:bottom, left:right] = i * intensity_step
+        
+        # Prepare the minimal metadat
+        header = {}
+        header['LONGSTRN'] = 'OGIP 1.0'
+        header['DATE-OBS'] = '2023-02-14T17:00:00.000'
+        header['CTYPE1'] = 'HPLN-TAN'
+        header['CTYPE2'] = 'HPLT-TAN'
+        header['CUNIT1'] = 'arcsec  '
+        header['CUNIT2'] = 'arcsec  '
+        header['CRVAL1'] = 0.0
+        header['CRVAL2'] = 0.0
+        header['LONPOLE'] = 180.0
+        header['CRPIX1'] = 512.5
+        header['CRPIX2'] = 512.5
+        header['CDELT1'] = 10.5
+        header['CDELT2'] = 10.5
+        header['CROTA2'] = 0.0
+        header['PC1_1'] = 1.0
+        header['PC1_2'] = 0.0
+        header['PC2_1'] = 0.0
+        header['PC2_2'] = 1.0
+        header['WAVELNTH'] = 170.0 # NOTE: FITS doesn't have a keyword to store the units for wavelength, it's usually listed in the header comment instead
+        header['WAVEUNIT'] = 'Angstrom'
+        header['BUNIT'] = 'photon/(cm2 s sr Angstrom)'
+        header['WCSNAME'] = 'Helioprojective-cartesian'
+        header['HGLT_OBS'] = 0.0
+        header['HGLN_OBS'] = 0.0
+        header['DSUN_OBS'] = 149597870691
+        header['RSUN'] = 970.
+        header['TELESCOP'] = 'SunCET'
+        header['INSTRUME'] = 'SunCET'
+        header['EXPTIME'] = 1.0
+
+        # Step 4: Package into a SunPy Map
+        smap = sunpy.map.Map(image_array, header)
+
+        from copy import deepcopy
+
+        # Define the structure of the outer dictionary
+        nested_dict = {
+            '0': {},
+            '1': {},
+            '2': {}
+        }
+
+        # Populate the nested dictionaries
+        for outer_key in nested_dict.keys():
+            for inner_key in ['170.0 Angstrom', '171.0 Angstrom']:
+                # Use deepcopy to ensure each smap is independent
+                nested_dict[outer_key][inner_key] = deepcopy(smap)
+
+        return nested_dict
 
 
     def __get_radiance_map_filenames(self):
@@ -109,7 +186,6 @@ class Simulator:
 
 
     def __simulate_noise(self):
-        self.radiance_maps_pure = self.radiance_maps
         self.radiance_maps = self.hardware.apply_photon_shot_noise(self.radiance_maps)
         self.detector_images = self.hardware.convert_to_electrons(self.radiance_maps, apply_noise=True)
         self.detector_images_pure = self.hardware.convert_to_electrons(self.radiance_maps_pure, apply_noise=False)
@@ -130,7 +206,7 @@ class Simulator:
             self.onboard_processed_images = self.onboard_software.subtract_dark(self.detector_images)
         else: 
             self.onboard_processed_images = self.detector_images
-        self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
+        #self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images) # FIXME: only commenting this out for debugging purposes. 
         self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.create_composite(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
@@ -139,6 +215,12 @@ class Simulator:
 
 
     def __calculate_snr(self):
+        def calculate_rms(values):
+            squared = [value ** 2 for value in values]
+            mean = np.mean(squared)
+            rms = np.sqrt(mean)
+            return rms
+        
         # generate no-noise image with compatible parameters to compare to simulated image
         composite_images_pure = self.hardware.convert_to_dn(self.detector_images_pure)
         composite_images_pure = self.onboard_software.filter_out_particle_hits(composite_images_pure)
@@ -162,10 +244,11 @@ class Simulator:
 
         for x in range(0, xsize ):
             for y in range(0, ysize):
-                noise_window = noise_image[max(0, y - window_min): min(ysize, y + window_max),
-                                           max(0, x - window_min): min(xsize, x + window_max)]
+                noise_window = noise_image[max(0, y - window_min): min(ysize, y + window_max + 1),
+                                           max(0, x - window_min): min(xsize, x + window_max + 1)]
                 window_elements = sum(len(x) for x in noise_window)
-                local_std[y, x] = np.std(noise_window)
+                #local_std[y, x] = np.std(noise_window)
+                local_std[y, x] = calculate_rms(noise_window)
                 # experimental not used
                 # local_rms_mean[y, x] = np.sum(noise_window**2.0)/window_elements
 
@@ -209,21 +292,22 @@ class Simulator:
 
     def __plot_snr(self):
         import matplotlib.pyplot as plt
-        from scipy.ndimage import gaussian_filter
+        from scipy.ndimage import uniform_filter
 
         snr_map = self.snr_image
 
-        # Apply a Gaussian filter to smooth the SNR map
-        sigma = 4  # Standard deviation for Gaussian kernel
-        smoothed_snr_map = gaussian_filter(snr_map, sigma=sigma)
+        # Deal with infinities
+        neutral_value = np.nanmedian(snr_map[np.isfinite(snr_map)])  # For example, the median of finite values
+        snr_map_no_inf = np.where(np.isinf(snr_map), neutral_value, snr_map)
 
-        # Define a range of contour levels for better visualization
-        max_snr = 40
-        contour_levels = np.linspace(10, max_snr, num=19)  # 20 levels from 10 to max_snr
 
-        # Optionally, clip the SNR values to a maximum for better color scaling
-        clip_max_snr = max_snr  # Adjust this value as needed
-        smoothed_snr_map_clipped = np.clip(smoothed_snr_map, 0, clip_max_snr)
+        # Smooth the SNR map
+        window_size = 20 # Note: IDL does "snr_smooth = smooth(rebin_pure_image/local_rms, 20, /edge_truncate)" and uses that for plotting the contours and pulling the +3.5 Rs SNR
+        extended_array = np.pad(snr_map_no_inf, pad_width=window_size//2, mode='edge')
+        smoothed_extended = uniform_filter(extended_array, size=window_size, mode='constant')
+        start = window_size // 2
+        end_offset = window_size - start
+        smoothed_snr_map = smoothed_extended[start:-end_offset, start:-end_offset]
 
         # Create a figure and a set of subplots
         fig, ax = plt.subplots(figsize=(10, 10))
@@ -231,19 +315,22 @@ class Simulator:
         # Display the image
         im = ax.imshow(self.onboard_processed_images.data, cmap='gray', origin='lower')
 
-        # Overlaying the smoothed SNR contours
-        contour_plot = ax.contourf(smoothed_snr_map_clipped, levels=contour_levels, cmap='viridis', alpha=0.5)
+        # Overlaying the SNR contours
+        contour_levels = [10, 40]
+        ax.contour(smoothed_snr_map, levels=[10], colors='red', linewidths=2)
+        ax.contour(smoothed_snr_map, levels=[40], colors='dodgerblue', linewidths=2)
 
-        # Create colorbar
-        cbar = fig.colorbar(contour_plot, ax=ax, label='SNR', fraction=0.035, pad=0.04)
+        # Add the horizontal line for the trace
+        vertical_center = round(smoothed_snr_map.shape[0] // 2.5)
+        ax.axhline(y=vertical_center, color='limegreen', linestyle='--', linewidth=2)
 
         # Set the title and labels
-        ax.set_title('Signal + Noise Image with Smoothed SNR Contours')
+        ax.set_title('Signal + Noise Image with SNR Contours')
         ax.set_xlabel('X Pixel')
         ax.set_ylabel('Y Pixel')
 
         # Adjusting the ticks for solar radii
-        height, width = self.onboard_processed_images.data.shape
+        height, width = np.shape(snr_map)
         center_x, center_y = width // 2, height // 2
         scale_factor = 100  # 100 pixels per solar radius
 
@@ -260,14 +347,15 @@ class Simulator:
         ax.set_xlabel("Solar Radii")
         ax.set_ylabel("Solar Radii")
 
-        plt.show()
-
-        vertical_center = smoothed_snr_map.shape[0] // 2
+        # Plot the horizontal trace
         horizontal_trace = smoothed_snr_map[vertical_center, :]
 
-        # Create the plot
         plt.figure(figsize=(10, 6))
-        plt.plot(horizontal_trace)
+        plt.plot(horizontal_trace, color='limegreen')
+
+        # Add vertical line at 3.5 Rs
+        pixel_position = center_x + int(3.5 * scale_factor)
+        plt.axvline(x=pixel_position, color='black', linestyle='--', linewidth=1)
 
         # Adjust the x-axis to represent solar radii
         num_pixels = len(horizontal_trace)
@@ -276,18 +364,14 @@ class Simulator:
         plt.xticks(x_ticks, [f"{x:.1f}" for x in x_labels])
 
         # Set labels and title
-        plt.title('SNR Horizontal Trace at Vertical Center')
+        plt.title('SNR Horizontal Trace at Vertical Center, MHD model {}, frame {}'.format(self.config.model_directory_name, self.current_timestep))
         plt.xlabel('Solar Radii')
         plt.ylabel('SNR')
-        plt.ylim(0, max_snr)
+        plt.ylim(0, np.max(contour_levels))
         plt.grid(True)
         plt.show()
 
-
-        width = smoothed_snr_map.shape[1]
-        center_x = width // 2
-        pixel_position = center_x + int(3.5 * scale_factor)
-        vertical_center = smoothed_snr_map.shape[0] // 2
+        # Print SNR value at +3.5 Rs
         snr_at_3_5 = smoothed_snr_map[vertical_center, pixel_position]
         print('SNR at +3.5 Rs = {:.0f}'.format(snr_at_3_5))
 
