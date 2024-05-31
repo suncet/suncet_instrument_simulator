@@ -183,6 +183,7 @@ class Simulator:
             self.radiance_maps = self.hardware.apply_mirror_scattered_light_psf(self.radiance_maps)
         self.radiance_maps = self.hardware.apply_effective_area(self.radiance_maps)
         self.radiance_maps = self.hardware.apply_exposure_times(self.radiance_maps)
+        self.radiance_maps_pure = self.radiance_maps
 
 
     def __simulate_noise(self):
@@ -206,7 +207,7 @@ class Simulator:
             self.onboard_processed_images = self.onboard_software.subtract_dark(self.detector_images)
         else: 
             self.onboard_processed_images = self.detector_images
-        #self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images) # FIXME: only commenting this out for debugging purposes. 
+        self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.create_composite(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
@@ -259,35 +260,6 @@ class Simulator:
         data[zero_noise_indices] = float('inf')
 
         self.snr_image = data/local_std
-
-
-    def __calculate_snr_chatgpt(self): # chatGPT method
-        def snr_in_window(signal, signal_and_noise):
-            mean_signal = np.mean(signal)
-            std_noise = np.std(signal_and_noise - signal)
-            return mean_signal / std_noise if std_noise != 0 else float('inf')
-        
-        composite_images_pure = self.hardware.convert_to_dn(self.detector_images_pure)
-        composite_images_pure = self.onboard_software.filter_out_particle_hits(composite_images_pure)
-        composite_image_pure = self.onboard_software.create_composite(composite_images_pure)
-        composite_image_pure_binned = self.onboard_software.bin_image(composite_image_pure)
-
-        height, width = composite_image_pure_binned.data.shape
-
-        # Size of the sliding window
-        window_size = 10
-
-        # Initialize SNR map
-        snr_map = np.zeros((height - window_size + 1, width - window_size + 1))
-
-        # Slide the window across the image
-        for y in range(height - window_size + 1):
-            for x in range(width - window_size + 1):
-                signal_window = composite_image_pure_binned.data[y:y+window_size, x:x+window_size]
-                noise_window = self.onboard_processed_images.data[y:y+window_size, x:x+window_size]
-                snr_map[y, x] = snr_in_window(signal_window, noise_window)
-
-        self.snr_image = snr_map
 
 
     def __plot_snr(self):
