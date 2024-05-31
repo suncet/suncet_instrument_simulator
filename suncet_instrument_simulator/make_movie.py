@@ -52,7 +52,7 @@ def plot_difference_image(data,data_prior, output_filename):
     fig.add_axes(ax)
 
     diff = data - data_prior
-    ax.imshow(diff, vmin=-1000, vmax=1000, cmap='gray', aspect='auto')
+    ax.imshow(diff, vmin=-10000, vmax=10000, cmap='gray', aspect='auto')
     plt.savefig(output_filename, dpi=fig.dpi, transparent=True)
     plt.close()
 
