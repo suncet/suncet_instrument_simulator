@@ -64,7 +64,7 @@ class Hardware:
         quantum_efficiency = self.__interpolate_quantum_efficiency()
         
         wavelength_strings = [f"{wavelength.value} {wavelength.unit}" for wavelength in self.wavelengths]
-        effective_area = geometric_area * mirror_reflectivity * filter_transmission * quantum_efficiency
+        effective_area = geometric_area * mirror_reflectivity**2. * filter_transmission * quantum_efficiency
         self.effective_area = {wavelength_str: a_eff for wavelength_str, a_eff in zip(wavelength_strings, effective_area)}
 
 
