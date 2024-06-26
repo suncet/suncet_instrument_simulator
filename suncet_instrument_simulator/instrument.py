@@ -85,7 +85,6 @@ class Hardware:
         interpolated_data1 = np.interp(self.wavelengths.value, source_data1.wavelength.values, source_data1.reflectivity.values)
         interpolated_data2 = np.interp(self.wavelengths.value, source_data2.wavelength.values, source_data2.reflectivity.values)
 
-        pass
         return interpolated_data1 * interpolated_data2
    
 
