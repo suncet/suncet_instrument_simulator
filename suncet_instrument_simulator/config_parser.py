@@ -34,9 +34,10 @@ class Config:
         # telescope
         self.entrance_aperture = config['telescope'].getfloat('entrance_aperture') * u.cm
         self.primary_mirror_truncation = config['telescope'].getfloat('primary_mirror_truncation') * u.cm**2
-        self.secondary_mirror_obscuration_fraction = config['telescope'].getfloat('secondary_mirror_obscuration') 
+        self.secondary_mirror_obscuration_fraction = config['telescope'].getfloat('secondary_mirror_obscuration_fraction') 
         self.fov = json.loads(config.get('telescope', 'fov')) * u.deg
-        self.mirror_coating_reflectivity_filename = config['telescope']['mirror_coating_reflectivity_filename']
+        self.mirror1_coating_reflectivity_filename = config['telescope']['mirror1_coating_reflectivity_filename']
+        self.mirror2_coating_reflectivity_filename = config['telescope']['mirror2_coating_reflectivity_filename']
         self.filter_entrance_transmission_filename = config['telescope']['filter_entrance_transmission_filename']
         self.filter_focal_plane_transmission_filename = config['telescope']['filter_focal_plane_transmission_filename']
         self.mirror_scatter_filename = config['telescope']['mirror_scatter_filename']

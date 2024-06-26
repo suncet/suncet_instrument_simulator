@@ -19,15 +19,21 @@ from suncet_instrument_simulator import config_parser # This is just for running
 class Hardware: 
     def __init__(self, config):
         self.config = config
-        self.coating_name = self.__get_coating_name()
+        self.coating_name_mirror1 = self.__get_coating_name(1)
+        self.coating_name_mirror2 = self.__get_coating_name(2)
         if self.config.apply_mirror_scattered_light_psf: 
             self.mirror_scatter_psf = self.__load_mirror_scatter_psf()
         if self.config.apply_mesh_diffraction:
             self.mesh_diffraction_psf = self.__load_mesh_diffraction_psf()
 
 
-    def __get_coating_name(self):
-        return os.path.basename(self.config.mirror_coating_reflectivity_filename).split('_1')[0]
+    def __get_coating_name(self, mirror_number):
+        if mirror_number == 1:
+            return os.path.basename(self.config.mirror1_coating_reflectivity_filename).split('_1')[0]
+        elif mirror_number == 2: 
+            return os.path.basename(self.config.mirror2_coating_reflectivity_filename).split('_1')[0]
+        else: 
+            raise ValueError('Need to provide a mirror number to get the corresponding coating name.')
 
     def __load_mirror_scatter_psf(self):
         filename = self.config.mirror_scatter_filename
@@ -59,33 +65,47 @@ class Hardware:
 
     def compute_effective_area(self):
         geometric_area = np.pi * ((self.config.entrance_aperture)/2)**2
-        mirror_reflectivity = self.__interpolate_mirror_coating_reflectivity()
-        filter_transmission = self.__interpolate_filter_transmission()
+        geometric_area *= (1 - self.config.secondary_mirror_obscuration_fraction)
+        mirror_reflectivity = self.__interpolate_mirror_coating_reflectivity() # This already multiplies the reflectivities together for each mirror
+        filter_transmission = self.__interpolate_filter_transmission() # This already multiplies the transmission together for each filter
         quantum_efficiency = self.__interpolate_quantum_efficiency()
         
         wavelength_strings = [f"{wavelength.value} {wavelength.unit}" for wavelength in self.wavelengths]
-        effective_area = geometric_area * mirror_reflectivity**2. * filter_transmission * quantum_efficiency
+        effective_area = geometric_area * mirror_reflectivity * filter_transmission * quantum_efficiency
         self.effective_area = {wavelength_str: a_eff for wavelength_str, a_eff in zip(wavelength_strings, effective_area)}
 
 
     def __interpolate_mirror_coating_reflectivity(self):
-        filename = self.config.mirror_coating_reflectivity_filename
-        source_data = self.__load_mirror_data(filename)
-        return np.interp(self.wavelengths.value, source_data.wavelength.values, source_data.reflectivity.values)
+        filename_mirror1 = self.config.mirror1_coating_reflectivity_filename
+        filename_mirror2 = self.config.mirror2_coating_reflectivity_filename
+
+        source_data1 = self.__load_mirror_data(filename_mirror1)
+        source_data2 = self.__load_mirror_data(filename_mirror2)
+
+        interpolated_data1 = np.interp(self.wavelengths.value, source_data1.wavelength.values, source_data1.reflectivity.values)
+        interpolated_data2 = np.interp(self.wavelengths.value, source_data2.wavelength.values, source_data2.reflectivity.values)
+
+        pass
+        return interpolated_data1 * interpolated_data2
    
 
+    # This is the function where we encapsulate all the messiness of filenames and what they mean
     def __load_mirror_data(self, filename):
         if 'measurement' in filename: 
             data = read_csv(os.getenv('suncet_data') + '/mirror_reflectivity/' + filename, header=0)
-            if 'nm' in data.columns[0]: 
-                data[data.columns[0]] *= 10 # Converts nm to Angstrom
-            elif '[A]' or 'Angstrom' in data.columns[0]: 
-                warnings.warn('Found indication that coating wavelength data is in angstroms so making the ASSUMPTION that this is actually true.')
-            else: 
-                raise ValueError('Do not know what units the coating wavelength is in.')
-            data.columns = ['wavelength', 'reflectivity']
+        elif 'final' in filename: 
+            data = read_csv(os.getenv('suncet_data') + '/mirror_reflectivity/2024-03-21 rigaku measurements final/' + filename)
         else: 
             data = read_fwf(os.getenv('suncet_data') + '/mirror_reflectivity/' + filename, skiprows=18, header=0, names=['wavelength', 'reflectivity'])
+        
+        if 'nm' in data.columns[0]: 
+            data[data.columns[0]] *= 10 # Converts nm to Angstrom
+        elif '[A]' or 'Angstrom' in data.columns[0]: 
+            warnings.warn('Found indication that coating wavelength data is in angstroms so making the ASSUMPTION that this is actually true.')
+        else: 
+            raise ValueError('Do not know what units the coating wavelength is in.')
+        data.columns = ['wavelength', 'reflectivity']
+
         return data # wavelength should be in Angstroms, reflectivity as a fraction
 
 
