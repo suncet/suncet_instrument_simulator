@@ -57,7 +57,7 @@ def filter_mesh_parameters(lambda_value, angle_arm=None, angles_focal_plane=None
     inch_per_micron = 3.93701E-5
     line_pitch_micron = line_pitch_inches/inch_per_micron * u.um
 
-    line_width = 65.0 * u.um
+    line_width = 32.0 * u.um
 
     lambda_ang = lambda_value * u.angstrom
     lambda_micron = lambda_ang.to(u.micron)
@@ -70,6 +70,10 @@ def filter_mesh_parameters(lambda_value, angle_arm=None, angles_focal_plane=None
     px_scale = 4.8 * u.arcsec/u.pixel
     focal_len = 300 * u.mm
     focal_plane_filter_dist = 3.5 * u.mm
+
+    # for experiments with FP filter distance
+    # focal_plane_filter_dist = 100 * u.mm
+
 
     psf_80pct_arcsec = 25. * u.arcsec # PSF 80% encircled energy width, using typical value from Alan's analysis
     psf_80pct_px = psf_80pct_arcsec / px_scale  # get 80% encircled in pixels
