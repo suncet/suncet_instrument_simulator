@@ -19,6 +19,7 @@ class Config:
         self.apply_mesh_diffraction = config['behavior'].getboolean('apply_mesh_diffraction')
         self.apply_mirror_scattered_light_psf = config['behavior'].getboolean('apply_mirror_scattered_light_psf')
         self.apply_particle_spikes = config['behavior'].getboolean('apply_particle_spikes')
+        self.filter_out_particle_hits = config['behavior'].getboolean('filter_out_particle_hits')
         self.subtract_dark = config['behavior'].getboolean('subtract_dark_onboard')
         self.compress_image = config['behavior'].getboolean('compress_image')
         self.timesteps_to_process = json.loads(config.get('behavior', 'timesteps_to_process'))
@@ -68,6 +69,10 @@ class Config:
         self.num_inner_rows_for_short_exposure = config['shdr'].getint('num_inner_rows_for_short_exposure')
         self.inner_fov_circle_radius = config['shdr'].getfloat('inner_fov_circle_radius') * u.solRad
         self.jitter = config['shdr'].getfloat('jitter') * u.arcsec / u.second
+        self.num_shift_bits_24_to_16 = config['shdr'].getint('num_shift_bits_24_to_16')
+
+        # histogram
+        self.num_bins = config['histogram'].getint('num_bins')
 
         # structure
         self.base_metadata_filename = config['structure']['base_metadata_filename']
