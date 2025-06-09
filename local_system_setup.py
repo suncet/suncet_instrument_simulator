@@ -30,7 +30,7 @@ os.system('pip install -e .')
 
 # 7. Manual: In your dev tools (VS Code or PyCharm or whatever), open up the folder that you cloned
 
-# 8. Manual: Setup your interpreter (e.g., in VS Code, open the Command Pallette, search for + click "Python: Select Interpreter", and choose the "suncet" environment that should've been installed in Step 3 above.)
+# 8. Manual: Setup your interpreter (e.g., in VS Code, open the Command Pallette, search for + click "Python: Select Interpreter", and choose the "suncet_instrument_simulator" environment that should've been installed in Step 3 above.)
 
 # And then you're done! But you probably want to check that things are working. The quick way to do that is to open up a terminal in the folder of your local version of the repo, make sure you're in the "suncet" environment, and then just type "pytest". It should run and all tests should pass. 
 
