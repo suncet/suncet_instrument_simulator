@@ -138,3 +138,6 @@ dmypy.json
 SunCET_MapSeq.fits
 jpm.prof
 suncet_instrument_simulator/explore_output_images.ipynb
+suncet_instrument_simulator/Test Raytrace.jpeg
+suncet_instrument_simulator/Test Raytrace.fits
+suncet_instrument_simulator/dust_euv_scattering.py
