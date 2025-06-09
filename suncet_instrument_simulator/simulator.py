@@ -39,7 +39,7 @@ class Simulator:
                 self.__simulate_detector()
                 self.__apply_camera_software()
                 self.__calculate_snr()
-                self.__plot_snr() # TODO: Remove this. It's just for debugging or reference. 
+                #self.__plot_snr() # FIXME: Remove this. It's just for debugging or reference. 
                 self.__complete_metadata()
                 self.__output_files()
     
@@ -208,8 +208,10 @@ class Simulator:
         else: 
             self.onboard_processed_images = self.detector_images
         self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
-        self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
+        if self.config.filter_out_particle_hits:
+            self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.create_composite(self.onboard_processed_images)
+        self.image_histogram = self.onboard_software.create_image_histogram(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
         if self.config.compress_image:
             self.onboard_processed_images = self.onboard_software.compress_image(self.onboard_processed_images)
@@ -381,7 +383,9 @@ class Simulator:
         header.set('DET_TEMP', value=self.config.detector_temperature.value)
         header.set('EXPTIME', map.meta['EXPTIME'])
         header.set('RSUN_REF', map.rsun_meters.value)
-
+        #header.set('HISTOGRAM_SHORT', value=self.image_histogram[0]) # FIXME: arrays can't be stored in the header. For flight they'd be in the metadata and on the ground in the hdf5 file
+        #header.set('HISTOGRAM_LONG', value=self.image_histogram[1])
+        
         hdu = fits.PrimaryHDU(map.data, header)
         hdul = fits.HDUList(hdu)
 
@@ -418,7 +422,7 @@ class Simulator:
     
 
     def __write_fits(self):
-        path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
+        path = os.getenv('suncet_data') + '/synthetic/level0/fits/'
         filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + self.fits[0].header['DATE-OBS'] + '_' + self.current_timestep + '.fits'
         self.fits[0].header.set('FILENAME', value=filename)
         
@@ -444,5 +448,3 @@ def __display_data(data):
 if __name__ == "__main__":
     simulator = Simulator()
     simulator.run()
-
-    # simulator.clean() maybe
