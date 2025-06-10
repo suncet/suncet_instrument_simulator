@@ -249,7 +249,6 @@ dependencies:
   - pycparser=2.22
   - pyerfa=2.0.1.5
   - pygments=2.19.1
-  - pyobjc-framework-cocoa=10.3.2
   - pyparsing=3.2.1
   - pysocks=1.7.1
   - pytest=8.3.4
