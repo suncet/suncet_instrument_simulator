@@ -75,7 +75,6 @@ class Simulator:
 
             for map in maps:
                 wavelength = str(map.wavelength)
-                #scaled_map = sunpy.map.Map(map.data * 10, map.meta) # FIXME: This is a fudge on 2024-03-28 to check what Dan's latest comparison to SUVI does
                 maps_by_index_and_wavelength[index][wavelength] = map
         
         self.radiance_maps = maps_by_index_and_wavelength
