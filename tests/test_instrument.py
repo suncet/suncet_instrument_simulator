@@ -26,7 +26,21 @@ def setup_instrument_hardware():
     hardware = instrument.Hardware(config)
     make_radiance_maps.MakeRadianceMaps(config).run()
     filenames = glob(os.getenv('suncet_data') + '/mhd/bright_fast/rendered_euv_maps/radiance_maps_200.fits')
-    radiance_maps = sunpy.map.Map(filenames, sequence=True)
+        
+    maps_by_index_and_wavelength = {}
+    for filename in filenames:
+        index = os.path.basename(filename).split('_')[-1].replace('.fits', '')
+        maps = sunpy.map.Map(filename)
+
+        if index not in maps_by_index_and_wavelength:
+            maps_by_index_and_wavelength[index] = {}
+
+        for map in maps:
+            wavelength = str(map.wavelength)
+            maps_by_index_and_wavelength[index][wavelength] = map
+    
+    radiance_maps = maps_by_index_and_wavelength
+
     hardware.store_target_wavelengths(radiance_maps)
     hardware.compute_effective_area()
     return hardware
