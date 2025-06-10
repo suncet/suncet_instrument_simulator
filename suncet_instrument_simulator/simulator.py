@@ -77,84 +77,8 @@ class Simulator:
                 wavelength = str(map.wavelength)
                 #scaled_map = sunpy.map.Map(map.data * 10, map.meta) # FIXME: This is a fudge on 2024-03-28 to check what Dan's latest comparison to SUVI does
                 maps_by_index_and_wavelength[index][wavelength] = map
-            
-        # FIXME: only doing the below for debugging purposes so delete it and the corresponding function
-        #self.radiance_maps = self.__make_bs_radiance_maps()
-        #self.bla = self.__make_bs_radiance_maps()
         
         self.radiance_maps = maps_by_index_and_wavelength
-
-
-    def __make_bs_radiance_maps(self):
-        height, width = 1500, 2000
-        image_array = np.zeros((height, width))
-
-        # Step 2: Adjust the rectangle drawing logic
-        num_rectangles = 5
-        intensity_step = 1e14
-
-        # Calculate the step size for each rectangle's boundary
-        height_step = height // (2 * num_rectangles)  # Dividing by 2*num_rectangles to account for top and bottom spacing
-        width_step = width // (2 * num_rectangles)  # Same for left and right
-
-        for i in range(num_rectangles):
-            top = i * height_step
-            left = i * width_step
-            bottom = height - (i * height_step)
-            right = width - (i * width_step)
-            image_array[top:bottom, left:right] = i * intensity_step
-        
-        # Prepare the minimal metadat
-        header = {}
-        header['LONGSTRN'] = 'OGIP 1.0'
-        header['DATE-OBS'] = '2023-02-14T17:00:00.000'
-        header['CTYPE1'] = 'HPLN-TAN'
-        header['CTYPE2'] = 'HPLT-TAN'
-        header['CUNIT1'] = 'arcsec  '
-        header['CUNIT2'] = 'arcsec  '
-        header['CRVAL1'] = 0.0
-        header['CRVAL2'] = 0.0
-        header['LONPOLE'] = 180.0
-        header['CRPIX1'] = 512.5
-        header['CRPIX2'] = 512.5
-        header['CDELT1'] = 10.5
-        header['CDELT2'] = 10.5
-        header['CROTA2'] = 0.0
-        header['PC1_1'] = 1.0
-        header['PC1_2'] = 0.0
-        header['PC2_1'] = 0.0
-        header['PC2_2'] = 1.0
-        header['WAVELNTH'] = 170.0 # NOTE: FITS doesn't have a keyword to store the units for wavelength, it's usually listed in the header comment instead
-        header['WAVEUNIT'] = 'Angstrom'
-        header['BUNIT'] = 'photon/(cm2 s sr Angstrom)'
-        header['WCSNAME'] = 'Helioprojective-cartesian'
-        header['HGLT_OBS'] = 0.0
-        header['HGLN_OBS'] = 0.0
-        header['DSUN_OBS'] = 149597870691
-        header['RSUN'] = 970.
-        header['TELESCOP'] = 'SunCET'
-        header['INSTRUME'] = 'SunCET'
-        header['EXPTIME'] = 1.0
-
-        # Step 4: Package into a SunPy Map
-        smap = sunpy.map.Map(image_array, header)
-
-        from copy import deepcopy
-
-        # Define the structure of the outer dictionary
-        nested_dict = {
-            '0': {},
-            '1': {},
-            '2': {}
-        }
-
-        # Populate the nested dictionaries
-        for outer_key in nested_dict.keys():
-            for inner_key in ['170.0 Angstrom', '171.0 Angstrom']:
-                # Use deepcopy to ensure each smap is independent
-                nested_dict[outer_key][inner_key] = deepcopy(smap)
-
-        return nested_dict
 
 
     def __get_radiance_map_filenames(self):
