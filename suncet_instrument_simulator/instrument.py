@@ -648,12 +648,6 @@ class OnboardSoftware:
         ---
         check if input is a sunpy map
         '''
-        #if isinstance(onboard_processed_images, 'sunpy.map.mapbase.GenericMap'):
-        #    print("nope")
-        #if type(onboard_processed_images) != 'sunpy.map.mapbase.GenericMap':
-        #    print(type(onboard_processed_images))
-        #    warnings.warn('bin_image module expected sunpy.map')
-
         # check if bin dimensions added
         if xbin == None:
             xbin = self.config.num_pixels_to_bin[0]
@@ -676,10 +670,16 @@ class OnboardSoftware:
             
             onboard_processed_images = onboard_processed_images.resample(new_dimensions, method='nearest')
             onboard_processed_images *= (xbin * ybin) # Conserve energy. DN come from electrons. resample doesn't account for the fact that the total number of electrons (DN) recorded across the detector is the same regardless of how you bin them in software
-            onboard_processed_images.meta['cdelt1'] = self.config.plate_scale.value * xbin # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
-            onboard_processed_images.meta['cdelt2'] = self.config.plate_scale.value * ybin # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
+            
+            # Flight firmware uses 24 bits when doing summing to avoid rollover that would otherwise be possible at 16 bits
+            max_24bit = 2**24 - 1
+            data_24_bit = np.clip(onboard_processed_images.data, 0, max_24bit).astype(np.uint32)
+            
+            new_map = sunpy.map.Map(data_24_bit, onboard_processed_images.meta)
+            new_map.meta['cdelt1'] = self.config.plate_scale.value * xbin # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
+            new_map.meta['cdelt2'] = self.config.plate_scale.value * ybin # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
 
-        return onboard_processed_images
+        return new_map
     
 
     def compress_image(self, onboard_processed_images): 

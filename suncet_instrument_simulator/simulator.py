@@ -38,7 +38,7 @@ class Simulator:
                 self.__simulate_noise()
                 self.__simulate_detector()
                 self.__apply_camera_software()
-                self.__calculate_snr()
+                #self.__calculate_snr()
                 #self.__plot_snr() # FIXME: Remove this. It's just for debugging or reference. 
                 self.__complete_metadata()
                 self.__output_files()
@@ -257,9 +257,12 @@ class Simulator:
 
         # deal with 0 noise pixels that would blow up the SNR
         zero_noise_indices = np.where(local_std == 0)
-        local_std[zero_noise_indices] = 1
-        data = composite_image_pure_binned.data
-        data[zero_noise_indices] = float('inf')
+        if zero_noise_indices[0].size > 0:  # Only modify if there are zero noise indices
+            local_std[zero_noise_indices] = 1
+            data = composite_image_pure_binned.data
+            data[zero_noise_indices] = float('inf')
+        else:
+            data = composite_image_pure_binned.data
 
         self.snr_image = data/local_std
 
