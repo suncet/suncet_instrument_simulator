@@ -5,7 +5,7 @@ from astropy.io import fits
 import os
 from glob import glob
 import imageio
-
+import datetime
 
 def apply_radial_filter(data, sigma):
     # Determine the center of the image
@@ -82,9 +82,9 @@ def plot_scaled_image(data, output_filename, scale=None):
 
 
 # Configure script here
-path = os.getenv('suncet_data') + '/synthetic/level0_raw/fits/'
+path = os.getenv('suncet_data') + '/synthetic/level0/fits/'
 filenames = 'config_default_OBS_2023-02-14T17:00:00.000_*.fits'
-do_difference = True
+do_difference = False
 
 
 fits_files = sorted(glob(path + filenames))
@@ -117,7 +117,7 @@ for i, file in enumerate(fits_files):
     
     
 
-movie_filename = os.getenv('suncet_data')+ '/synthetic/images and movies/movie'
+movie_filename = os.getenv('suncet_data')+ '/synthetic/images and movies/synthetic_suncet_movie_' + datetime.datetime.now().strftime('%Y-%m-%d')
 if do_difference: 
     movie_filename += f"_difference.mp4"
 else: 
