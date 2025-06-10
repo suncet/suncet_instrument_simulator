@@ -16,7 +16,8 @@ tmp_file_urls = ["https://www.dropbox.com/s/bctrdr7de28m99o/B4C_Mo_Al_1-11000A.t
                  "https://www.dropbox.com/scl/fi/rbe7vm3sha9mbloek1iio/suncet_metadata_definition_v1.0.0.csv?rlkey=mswa2lvdrvbb9o1rer1z60p2x&dl=1",
                  "https://www.dropbox.com/scl/fi/66yr9prze1pfihsrv387n/suncet_mirror_scatter_psf_baffled.fits?rlkey=ucy6w8qpldf5gx1po89xpq0ya&dl=1", 
                  "https://www.dropbox.com/scl/fi/g9r7sei24ee2w7d18xi4j/suncet_diffraction_patterns_2k_20250224.fits?rlkey=4b2tcgps8bzcg6felk8h4t4sp&dl=1",
-                 "https://www.dropbox.com/scl/fi/m62dx8aoqt37ne61lzo66/m1_sn2_final.csv?rlkey=593rjhy8mam8qjbswd2enza1f&dl=1"] # dl=1 is important
+                 "https://www.dropbox.com/scl/fi/m62dx8aoqt37ne61lzo66/m1_sn2_final.csv?rlkey=593rjhy8mam8qjbswd2enza1f&dl=1",
+                 "https://www.dropbox.com/scl/fi/rlgszvwuww3jz2kdkp8ws/m2_sn3_final.csv?rlkey=njyrw0cegur2nss5eleu4q1w0&dl=1"] # dl=1 is important
 
 def run():
     if os.getenv('suncet_data') == None:
@@ -44,8 +45,8 @@ def run():
     mirror_scatter_path.mkdir(parents=True, exist_ok=True)
     diffraction_path = Path(os.getenv('suncet_data') + '/filter_mesh_diffraction')
     diffraction_path.mkdir(parents=True, exist_ok=True)
-    m1_sn2_path = Path(os.getenv('suncet_data') + '/mirror_reflectivity/2024-03-21 rigaku measurements final/')
-    m1_sn2_path.mkdir(parents=True, exist_ok=True)
+    measured_reflectivity_path = Path(os.getenv('suncet_data') + '/mirror_reflectivity/2024-03-21 rigaku measurements final/')
+    measured_reflectivity_path.mkdir(parents=True, exist_ok=True)
 
     ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -73,7 +74,9 @@ def run():
         elif filename.startswith('suncet_diffraction_patterns_'):
             filename = diffraction_path / filename
         elif filename.startswith('m1_sn2_final'):
-            filename = m1_sn2_path / filename
+            filename = measured_reflectivity_path / filename
+        elif filename.startswith('m2_sn3_final'):
+            filename = measured_reflectivity_path / filename
         with open(filename, "wb") as f:
             print('downloading file: {}'.format(filename))
             f.write(data)
