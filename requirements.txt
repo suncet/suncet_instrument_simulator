@@ -181,7 +181,6 @@ sortedcontainers==2.4.0
 soupsieve==2.5
 spiceypy==6.0.0
 stack_data==0.6.3
-suncet_instrument_simulator==1.0.0
 sunpy==6.0.4
 tblib==3.0.0
 terminado==0.18.1
