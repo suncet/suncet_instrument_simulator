@@ -48,7 +48,7 @@ def setup_instrument_hardware():
 
 def run_mirror_coating_tests(hardware):
     assert hardware.wavelengths.unit == u.Angstrom
-    assert hardware.effective_area.unit == u.cm**2
+    assert hardware.effective_area['170.0 Angstrom'].unit == u.cm**2
 
 
 if __name__ == "__main__":
