@@ -151,7 +151,6 @@ pyarrow==18.1.0
 pycparser==2.22
 pyerfa==2.0.1.5
 Pygments==2.19.1
-pyobjc-core==10.3.2
 pyobjc-framework-Cocoa==10.3.2
 pyparsing==3.2.1
 PySocks==1.7.1
