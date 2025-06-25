@@ -69,7 +69,7 @@ class Config:
         self.num_inner_rows_for_short_exposure = config['shdr'].getint('num_inner_rows_for_short_exposure')
         self.inner_fov_circle_radius = config['shdr'].getfloat('inner_fov_circle_radius') * u.solRad
         self.jitter = config['shdr'].getfloat('jitter') * u.arcsec / u.second
-        self.num_shift_bits_24_to_16 = config['shdr'].getint('num_shift_bits_24_to_16')
+        self.num_shift_bits_32_to_16 = config['shdr'].getint('num_shift_bits_32_to_16')
 
         # histogram
         self.num_bins = config['histogram'].getint('num_bins')

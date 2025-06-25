@@ -572,24 +572,18 @@ class OnboardSoftware:
         for exposure_type in ['short exposure', 'long exposure']:
             map_indices = list(onboard_processed_images[exposure_type].keys())
 
-            if len(map_indices) != 3:
-                raise ValueError("Need exactly 3 images to apply particle filtering per Alan's CSIE FPGA logic.")
-
-            sorted_indices = sorted(map_indices)[:3]
+            sorted_indices = sorted(map_indices)
             maps = [onboard_processed_images[exposure_type][index] for index in sorted_indices]
             stack = np.stack([map_obj.data for map_obj in maps], axis=-1)
 
-            stack = stack.astype(np.int32) # Note: onboard firmware actually uses a 24-bit buffer for the following sum but numpy only has options of 16 or 32. This is fine in most cases for simulation because even 24 bit is really, really big. 
+            stack = stack.astype(np.int32)
 
-            # Remove max value along the stack axis and sum the remaining values
-            max_removed = np.sort(stack, axis=-1)[:, :, :-1]  # Sort and remove last (max) value
-            summed_data = np.sum(max_removed, axis=-1)  # Sum the remaining values
+            # Sum all values first, then subtract the maximum value (that's how flight firmware does it)
+            summed_data = np.sum(stack, axis=-1)
+            max_values = np.max(stack, axis=-1)
+            summed_data = summed_data - max_values
 
-            # Shift the data to the right by the number of bits specified in the config to get big numbers to still fit in 16 bits
-            shift_factor = 2 ** self.config.num_shift_bits_24_to_16
-            shifted_data = (summed_data / shift_factor).astype(np.uint16)
-
-            new_map = sunpy.map.Map(shifted_data, maps[0].meta)
+            new_map = sunpy.map.Map(summed_data, maps[0].meta)
             onboard_processed_images[exposure_type] = new_map
 
         return onboard_processed_images
@@ -643,10 +637,6 @@ class OnboardSoftware:
         ---
         detector_images : [sunpy.map.MapSequence]
             A binned sunpy detector images map sequence 
-
-        TODO
-        ---
-        check if input is a sunpy map
         '''
         # check if bin dimensions added
         if xbin == None:
@@ -671,16 +661,23 @@ class OnboardSoftware:
             onboard_processed_images = onboard_processed_images.resample(new_dimensions, method='nearest')
             onboard_processed_images *= (xbin * ybin) # Conserve energy. DN come from electrons. resample doesn't account for the fact that the total number of electrons (DN) recorded across the detector is the same regardless of how you bin them in software
             
-            # Flight firmware uses 24 bits when doing summing to avoid rollover that would otherwise be possible at 16 bits
-            max_24bit = 2**24 - 1
-            data_24_bit = np.clip(onboard_processed_images.data, 0, max_24bit).astype(np.uint32)
-            
-            new_map = sunpy.map.Map(data_24_bit, onboard_processed_images.meta)
+            new_map = sunpy.map.Map(onboard_processed_images.data, onboard_processed_images.meta)
             new_map.meta['cdelt1'] = self.config.plate_scale.value * xbin # Note 1: this is only needed because sunpy (v4.0.1) resample updates dimensions but NOT plate scale
             new_map.meta['cdelt2'] = self.config.plate_scale.value * ybin # Note 2: there is also risk here because a) the user must be responsible in the config file to ensure the image_dimensions and plate_scale are compatible, and b) the units they input for plate_scale must be the same as those already in the map
 
         return new_map
     
+    def bit_shift_data(self, onboard_processed_images):
+
+        # Shift the data to the right by the number of bits specified in the config to get big numbers to still fit in 16 bits
+        shift_factor = 2 ** self.config.num_shift_bits_32_to_16
+        shifted_data = (onboard_processed_images.data / shift_factor).astype(np.uint32)
+
+        max_value = 2**self.config.readout_bits.value - 1
+        data = np.clip(shifted_data, 0, max_value).astype(np.uint16)
+        new_map = sunpy.map.Map(data, onboard_processed_images.meta)
+
+        return new_map
 
     def compress_image(self, onboard_processed_images): 
         normalized_data = (onboard_processed_images.data - np.min(onboard_processed_images.data)) / (np.max(onboard_processed_images.data) - np.min(onboard_processed_images.data))

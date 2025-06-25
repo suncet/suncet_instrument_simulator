@@ -136,6 +136,7 @@ class Simulator:
         self.onboard_processed_images = self.onboard_software.create_composite(self.onboard_processed_images)
         self.image_histogram = self.onboard_software.create_image_histogram(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)
+        self.onboard_processed_images = self.onboard_software.bit_shift_data(self.onboard_processed_images)
         if self.config.compress_image:
             self.onboard_processed_images = self.onboard_software.compress_image(self.onboard_processed_images)
 
