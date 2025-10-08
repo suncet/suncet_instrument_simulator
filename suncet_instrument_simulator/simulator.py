@@ -75,6 +75,8 @@ class Simulator:
 
             for map in maps:
                 wavelength = str(map.wavelength)
+                if 'RSUN_REF' not in map.meta:
+                    map.meta['RSUN_REF'] = 6.96e8 # meters but can't use astropy units here because its a FITS header standard
                 maps_by_index_and_wavelength[index][wavelength] = map
         
         self.radiance_maps = maps_by_index_and_wavelength

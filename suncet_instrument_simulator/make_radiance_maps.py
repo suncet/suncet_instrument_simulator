@@ -14,7 +14,7 @@ import astropy.units as u
 class MakeRadianceMaps:
     def __init__(self, config = None):
         if config is None:
-            config_filename = os.getcwd() + '/config_files/config_default.ini'
+            config_filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
             self.config = self.__read_config(config_filename)
         else:
             self.config = config
@@ -165,8 +165,9 @@ class MakeRadianceMaps:
     def __solve_solar_params(self, header = None):
         date = header['DATE-OBS']
         solar_distance = int(sunpy.coordinates.sun.earth_distance(time = date).to(u.m).value)
-        solar_radius = sunpy.coordinates.sun.angular_radius(t=date)
-        return (solar_distance, solar_radius)
+        solar_radius_angular = sunpy.coordinates.sun.angular_radius(t=date)
+        solar_radius_meters = solar_distance * np.tan(solar_radius_angular.to(u.rad).value)
+        return (solar_distance, solar_radius_angular, solar_radius_meters)
 
     def __save_map_sequence(self):
         map_file_out = self.__make_outgoing_filename()
@@ -176,11 +177,13 @@ class MakeRadianceMaps:
                 hdu = fits.PrimaryHDU(map.data, map.fits_header)
                 hdu.header['DSUN_OBS'] = solar_params[0]
                 hdu.header['RSUN'] = solar_params[1].value
+                hdu.header['RSUN_REF'] = solar_params[2]
                 hdul = fits.HDUList(hdu)
             else:
                 hdu = fits.ImageHDU(map.data, map.fits_header)
                 hdu.header['DSUN_OBS'] = solar_params[0]
                 hdu.header['RSUN'] = solar_params[1].value
+                hdu.header['RSUN_REF'] = solar_params[2]
                 hdul.append(hdu)
         print('Saving Map: ' + map_file_out)
         try:
