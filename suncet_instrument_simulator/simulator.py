@@ -10,7 +10,7 @@ import pandas as pd
 import ast
 import numpy as np
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
-
+ 
 class Simulator:
     def __init__(self, config_filename=os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'):
         self.config_filename = config_filename
@@ -135,6 +135,12 @@ class Simulator:
         self.onboard_processed_images = self.onboard_software.apply_jitter(self.onboard_processed_images)
         if self.config.filter_out_particle_hits:
             self.onboard_processed_images = self.onboard_software.filter_out_particle_hits(self.onboard_processed_images)
+        # Always collapse stacks so create_composite receives single maps even when
+        # particle-hit filtering is disabled.
+        self.onboard_processed_images = self.onboard_software.collapse_exposure_stacks(
+            self.onboard_processed_images,
+            collapse_method='first'
+        )
         self.onboard_processed_images = self.onboard_software.create_composite(self.onboard_processed_images)
         self.image_histogram = self.onboard_software.create_image_histogram(self.onboard_processed_images)
         self.onboard_processed_images = self.onboard_software.bin_image(self.onboard_processed_images)

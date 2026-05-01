@@ -587,6 +587,38 @@ class OnboardSoftware:
             onboard_processed_images[exposure_type] = new_map
 
         return onboard_processed_images
+
+
+    def collapse_exposure_stacks(self, onboard_processed_images, collapse_method='first'):
+        """
+        Ensure each exposure type is represented by a single SunPy map.
+
+        This decouples stack-collapsing from particle-hit filtering so downstream
+        steps can run whether filtering is enabled or disabled.
+        """
+        for exposure_type in ['short exposure', 'long exposure']:
+            exposure_data = onboard_processed_images[exposure_type]
+
+            # Already collapsed (e.g., by filter_out_particle_hits)
+            if hasattr(exposure_data, 'world_to_pixel'):
+                continue
+
+            if not isinstance(exposure_data, dict) or len(exposure_data) == 0:
+                raise ValueError('Expected non-empty exposure stack dict for {}'.format(exposure_type))
+
+            sorted_indices = sorted(exposure_data.keys())
+            maps = [exposure_data[index] for index in sorted_indices]
+
+            if collapse_method == 'first':
+                onboard_processed_images[exposure_type] = maps[0]
+            elif collapse_method == 'mean':
+                stacked_data = np.stack([map_obj.data for map_obj in maps], axis=-1)
+                mean_data = np.mean(stacked_data, axis=-1)
+                onboard_processed_images[exposure_type] = sunpy.map.Map(mean_data, maps[0].meta)
+            else:
+                raise ValueError('Unsupported collapse method: {}'.format(collapse_method))
+
+        return onboard_processed_images
     
     
     def create_composite(self, onboard_processed_images):
