@@ -555,6 +555,8 @@ class OnboardSoftware:
 
                 # Shift the image data to simulate the instantaneous start/stop boundary between timesteps (cadence steps)
                 shifted_data = shift(image.data, shift=[dy, dx], mode='nearest')
+                image.meta['crpix1'] += dx
+                image.meta['crpix2'] += dy
 
                 # Apply Gaussian blur to simulate motion during exposure
                 blurred_data = gaussian_filter(shifted_data, sigma=blur_pixels.value)

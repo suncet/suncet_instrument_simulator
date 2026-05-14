@@ -291,11 +291,12 @@ class Simulator:
         metadata_definition = self.__load_metadata_definition()
         map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
 
-        header = self.__convert_sunpy_meta_to_fits_header(map)
+        header = fits.Header()
+        old_header = self.__convert_sunpy_meta_to_fits_header(map)
 
         for _, row in metadata_definition.iterrows():
-            if 'COMMENT' in str(row['Full variable name']): 
-                header.set('COMMENT', value=row['Full variable name'].replace('COMMENT ', ''), after=len(header))  # line breaking comments for human readability
+            if 'COMMENT' in str(row['Field Name']):
+                header.set('COMMENT', value=row['Field Name'].replace('COMMENT ', ''), after=len(header))  # line breaking comments for human readability
             elif row['FITS variable name'] not in header: 
                 value = row['typical value']
                 if pd.isna(value): 
@@ -307,20 +308,26 @@ class Simulator:
                         pass
                 header.set(row['FITS variable name'], value=value, comment=row['Description'], after=len(header))
 
+
+
         # Populate metadata defined by the config file or resultant from the simulation
         header.set('LEVEL', value='0.5')
         header.set('TIMESYS', value='UTC')
-        header.set('IMAGEW', value=map.dimensions[0].value)
-        header.set('IMAGEH', value=map.dimensions[1].value)
         header.set('NBIN', value=(self.config.num_pixels_to_bin[0] * self.config.num_pixels_to_bin[1]))
         header.set('NBIN1', value=self.config.num_pixels_to_bin[0])
         header.set('NBIN2', value=self.config.num_pixels_to_bin[1])
         header.set('DET_TEMP', value=self.config.detector_temperature.value)
-        header.set('EXPTIME', map.meta['EXPTIME'])
-        header.set('RSUN_REF', map.rsun_meters.value)
-        #header.set('HISTOGRAM_SHORT', value=self.image_histogram[0]) # FIXME: arrays can't be stored in the header. For flight they'd be in the metadata and on the ground in the hdf5 file
-        #header.set('HISTOGRAM_LONG', value=self.image_histogram[1])
-        
+
+        # values from map are now copied in above, so the following is superfluous
+        # header.set('EXPTIME', map.meta['EXPTIME'])
+        # header.set('RSUN_REF', map.rsun_meters.value)
+        # header.set('IMAGEW', value=map.dimensions[0].value)
+        # header.set('IMAGEH', value=map.dimensions[1].value)
+
+        # previously commented out
+        # header.set('HISTOGRAM_SHORT', value=self.image_histogram[0]) # FIXME: arrays can't be stored in the header. For flight they'd be in the metadata and on the ground in the hdf5 file
+        # header.set('HISTOGRAM_LONG', value=self.image_histogram[1])
+
         hdu = fits.PrimaryHDU(map.data, header)
         hdul = fits.HDUList(hdu)
 

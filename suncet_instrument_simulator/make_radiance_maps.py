@@ -139,7 +139,7 @@ class MakeRadianceMaps:
         header['HGLT_OBS'] = 0.0
         header['HGLN_OBS'] = 0.0
         header['DSUN_OBS'] = 149597870691
-        header['RSUN'] = 970.
+        header['RSUN_OBS'] = 970.
         header['TELESCOP'] = 'SunCET'
         header['INSTRUME'] = 'SunCET'
         header['EXPTIME'] = 1.0
@@ -176,13 +176,13 @@ class MakeRadianceMaps:
             if n == 0:
                 hdu = fits.PrimaryHDU(map.data, map.fits_header)
                 hdu.header['DSUN_OBS'] = solar_params[0]
-                hdu.header['RSUN'] = solar_params[1].value
+                hdu.header['RSUN_OBS'] = solar_params[1].value
                 hdu.header['RSUN_REF'] = solar_params[2]
                 hdul = fits.HDUList(hdu)
             else:
                 hdu = fits.ImageHDU(map.data, map.fits_header)
                 hdu.header['DSUN_OBS'] = solar_params[0]
-                hdu.header['RSUN'] = solar_params[1].value
+                hdu.header['RSUN_OBS'] = solar_params[1].value
                 hdu.header['RSUN_REF'] = solar_params[2]
                 hdul.append(hdu)
         print('Saving Map: ' + map_file_out)
