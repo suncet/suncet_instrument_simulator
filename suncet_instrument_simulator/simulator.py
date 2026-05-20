@@ -9,7 +9,7 @@ import sunpy.map
 import pandas as pd
 import ast
 import numpy as np
-from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument
+from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument, stack_schedule
  
 class Simulator:
     def __init__(self, config_filename=os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'):
@@ -45,8 +45,8 @@ class Simulator:
     
 
     def __get_timesteps(self): 
-        first, last, step = self.config.timesteps_to_process
-        step = self.config.num_long_exposures_to_stack  # Overall processing step defined by the SHDR algorithm rather than the step being used to figure out what radiance maps to compute
+        first, last, _ = self.config.timesteps_to_process
+        step = self.config.output_stride_model_steps
         return [str(i).zfill(3) for i in range(first, last + 1, step)]
 
 
@@ -59,56 +59,87 @@ class Simulator:
 
     def __load_radiance_maps(self):
         self.radiance_maps_found = True
-        filenames = self.__get_radiance_map_filenames()
-        if len(filenames) < self.config.num_long_exposures_to_stack: 
-            print('Need {} radiance maps for SHDR stacking but only found {} for timestep {}'.format(self.config.num_long_exposures_to_stack, len(filenames), self.current_timestep))
+        t0 = int(self.current_timestep)
+        self.stack_schedule = stack_schedule.build_stack_schedule(t0, self.config)
+        required_indices = self.stack_schedule.unique_model_indices
+        filenames = self.__get_radiance_map_filenames(required_indices)
+        if len(filenames) < len(required_indices):
+            print(
+                'Need {} radiance maps for observation at model index {} but only found {}.'.format(
+                    len(required_indices), self.current_timestep, len(filenames)
+                )
+            )
             self.radiance_maps_found = False
             return
-        
-        maps_by_index_and_wavelength = {}
+
+        self.radiance_by_model_index = {}
         for filename in filenames:
-            index = os.path.basename(filename).split('_')[-1].replace('.fits', '')
+            index = int(os.path.basename(filename).split('_')[-1].replace('.fits', ''))
             maps = sunpy.map.Map(filename)
-
-            if index not in maps_by_index_and_wavelength:
-                maps_by_index_and_wavelength[index] = {}
-
+            maps_by_wavelength = {}
             for map in maps:
                 wavelength = str(map.wavelength)
                 if 'RSUN_REF' not in map.meta:
-                    map.meta['RSUN_REF'] = 6.96e8 # meters but can't use astropy units here because its a FITS header standard
-                maps_by_index_and_wavelength[index][wavelength] = map
-        
-        self.radiance_maps = maps_by_index_and_wavelength
+                    map.meta['RSUN_REF'] = 6.96e8  # meters but can't use astropy units here because its a FITS header standard
+                maps_by_wavelength[wavelength] = map
+            self.radiance_by_model_index[index] = maps_by_wavelength
+
+        available_indices = sorted(self.radiance_by_model_index.keys())
+        self.stack_schedule = stack_schedule.build_stack_schedule(
+            t0, self.config, available_indices=available_indices
+        )
 
 
-    def __get_radiance_map_filenames(self):
-        start = int(self.current_timestep)
-        end = start + self.config.num_long_exposures_to_stack - 1
-
+    def __get_radiance_map_filenames(self, model_indices):
         base_directory = os.getenv('suncet_data') + self.config.model_data_folder + '/' + self.config.map_directory_name + '/'
-
         filenames = []
-        for timestep in range(start, end + 1):
-            file_pattern = 'radiance_maps_' + str(timestep).zfill(3) + '.fits'
+        for model_index in model_indices:
+            file_pattern = 'radiance_maps_' + str(model_index).zfill(3) + '.fits'
             filenames.extend(glob(base_directory + file_pattern))
-
         return sorted(filenames)
 
 
-    def __sun_to_detector(self):
-        self.hardware.store_target_wavelengths(self.radiance_maps)
-        self.hardware.compute_effective_area()
-        self.radiance_maps = self.hardware.extract_fov(self.radiance_maps)
-        self.radiance_maps = self.hardware.interpolate_spatial_resolution(self.radiance_maps)
-        self.radiance_maps = self.hardware.convert_steradians_to_pixels(self.radiance_maps)
+    def __process_radiance_through_optics(self, radiance_maps_by_member):
+        radiance_maps = self.hardware.extract_fov(radiance_maps_by_member)
+        radiance_maps = self.hardware.interpolate_spatial_resolution(radiance_maps)
+        radiance_maps = self.hardware.convert_steradians_to_pixels(radiance_maps)
         if self.config.apply_mesh_diffraction:
-            self.radiance_maps = self.hardware.apply_diffraction_psf(self.radiance_maps)
+            radiance_maps = self.hardware.apply_diffraction_psf(radiance_maps)
         if self.config.apply_mirror_scattered_light_psf:
-            self.radiance_maps = self.hardware.apply_mirror_scattered_light_psf(self.radiance_maps)
-        self.radiance_maps = self.hardware.apply_effective_area(self.radiance_maps)
-        self.radiance_maps = self.hardware.apply_exposure_times(self.radiance_maps)
-        self.radiance_maps_pure = self.radiance_maps
+            radiance_maps = self.hardware.apply_mirror_scattered_light_psf(radiance_maps)
+        radiance_maps = self.hardware.apply_effective_area(radiance_maps)
+        return radiance_maps
+
+
+    def __sun_to_detector(self):
+        short_radiance_by_member = stack_schedule.build_radiance_by_stack_member(
+            self.stack_schedule.short_members, self.radiance_by_model_index
+        )
+        long_radiance_by_member = stack_schedule.build_radiance_by_stack_member(
+            self.stack_schedule.long_members, self.radiance_by_model_index
+        )
+
+        self.hardware.store_target_wavelengths(short_radiance_by_member)
+        self.hardware.compute_effective_area()
+
+        short_radiance_by_member = self.__process_radiance_through_optics(short_radiance_by_member)
+        long_radiance_by_member = self.__process_radiance_through_optics(long_radiance_by_member)
+
+        short_exposed = self.hardware.apply_exposure_times_for_stack(
+            short_radiance_by_member, self.config.exposure_time_short
+        )
+        long_exposed = self.hardware.apply_exposure_times_for_stack(
+            long_radiance_by_member, self.config.exposure_time_long
+        )
+
+        self.radiance_maps = {
+            'short exposure': short_exposed,
+            'long exposure': long_exposed,
+        }
+        self.radiance_maps_pure = {
+            'short exposure': {key: value for key, value in short_exposed.items()},
+            'long exposure': {key: value for key, value in long_exposed.items()},
+        }
 
 
     def __simulate_noise(self):
@@ -158,7 +189,12 @@ class Simulator:
         
         # generate no-noise image with compatible parameters to compare to simulated image
         composite_images_pure = self.hardware.convert_to_dn(self.detector_images_pure)
-        composite_images_pure = self.onboard_software.filter_out_particle_hits(composite_images_pure)
+        if self.config.filter_out_particle_hits:
+            composite_images_pure = self.onboard_software.filter_out_particle_hits(composite_images_pure)
+        else:
+            composite_images_pure = self.onboard_software.collapse_exposure_stacks(
+                composite_images_pure, collapse_method='first'
+            )
         composite_image_pure = self.onboard_software.create_composite(composite_images_pure)
         composite_image_pure_binned = self.onboard_software.bin_image(composite_image_pure)
 
@@ -287,6 +323,24 @@ class Simulator:
         pass
 
 
+    def __metadata_field_name(self, row):
+        if pd.isna(row.get('Field Name')):
+            return ''
+        return str(row['Field Name'])
+
+    def __metadata_fits_keyword(self, row):
+        if pd.isna(row.get('FITS variable name')):
+            return None
+        keyword = str(row['FITS variable name']).strip()
+        if not keyword:
+            return None
+        return keyword
+
+    def __metadata_description(self, row):
+        if pd.isna(row.get('Description')):
+            return ''
+        return str(row['Description'])
+
     def __complete_metadata(self):
         metadata_definition = self.__load_metadata_definition()
         map = self.__strip_units_for_fits_compatibility(self.onboard_processed_images)
@@ -295,18 +349,38 @@ class Simulator:
         old_header = self.__convert_sunpy_meta_to_fits_header(map)
 
         for _, row in metadata_definition.iterrows():
-            if 'COMMENT' in str(row['Field Name']):
-                header.set('COMMENT', value=row['Field Name'].replace('COMMENT ', ''), after=len(header))  # line breaking comments for human readability
-            elif row['FITS variable name'] not in header: 
-                value = row['typical value']
-                if pd.isna(value): 
-                    value = 'N/A'
-                else: 
-                    try: 
-                        value = ast.literal_eval(value)
-                    except:
-                        pass
-                header.set(row['FITS variable name'], value=value, comment=row['Description'], after=len(header))
+            field_name = self.__metadata_field_name(row)
+            if 'COMMENT' in field_name:
+                comment_text = field_name.replace('COMMENT ', '').strip()
+                if comment_text:
+                    header.set('COMMENT', value=comment_text, after=len(header))
+                continue
+
+            fits_keyword = self.__metadata_fits_keyword(row)
+            if fits_keyword is None:
+                continue
+
+            if fits_keyword in header:
+                continue
+
+            value = row.get('typical value')
+            if pd.isna(value):
+                value = 'N/A'
+            else:
+                try:
+                    value = ast.literal_eval(str(value))
+                except (ValueError, SyntaxError):
+                    value = str(value)
+
+            try:
+                header.set(
+                    fits_keyword,
+                    value=value,
+                    comment=self.__metadata_description(row),
+                    after=len(header),
+                )
+            except (ValueError, KeyError) as error:
+                print('Skipping metadata row with FITS keyword {!r}: {}'.format(fits_keyword, error))
 
 
 

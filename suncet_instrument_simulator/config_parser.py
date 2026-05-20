@@ -1,3 +1,4 @@
+import math
 import os
 import configparser
 import json
@@ -71,6 +72,8 @@ class Config:
         self.jitter = config['shdr'].getfloat('jitter') * u.arcsec / u.second
         self.num_shift_bits_32_to_16 = config['shdr'].getint('num_shift_bits_32_to_16')
 
+        self._apply_shdr_stack_config_rules()
+
         # histogram
         self.num_bins = config['histogram'].getint('num_bins')
 
@@ -78,6 +81,40 @@ class Config:
         self.base_metadata_filename = config['structure']['base_metadata_filename']
         self.model_data_folder = config['structure']['model_data_folder']
 
+    def _apply_shdr_stack_config_rules(self):
+        if not self.filter_out_particle_hits:
+            if self.num_short_exposures_to_stack > 1 or self.num_long_exposures_to_stack > 1:
+                print(
+                    'filter_out_particle_hits is False; forcing num_short_exposures_to_stack '
+                    'and num_long_exposures_to_stack to 1 (was {} and {}).'.format(
+                        self.num_short_exposures_to_stack,
+                        self.num_long_exposures_to_stack,
+                    )
+                )
+            self.num_short_exposures_to_stack = 1
+            self.num_long_exposures_to_stack = 1
+        elif self.num_short_exposures_to_stack < 2 or self.num_long_exposures_to_stack < 2:
+            raise ValueError(
+                'filter_out_particle_hits requires at least two integrations in each stack '
+                '(num_short_exposures_to_stack and num_long_exposures_to_stack must both be >= 2).'
+            )
+
+        self.short_integration_window = (
+            self.exposure_time_short * self.num_short_exposures_to_stack
+        )
+        self.long_integration_window = (
+            self.exposure_time_long * self.num_long_exposures_to_stack
+        )
+        self.observation_window = max(self.short_integration_window, self.long_integration_window)
+
+        if not self.filter_out_particle_hits:
+            self.output_stride_model_steps = 1
+        else:
+            model_timestep_seconds = self.model_timestep.to(u.second).value
+            observation_window_seconds = self.observation_window.to(u.second).value
+            self.output_stride_model_steps = max(
+                1, int(math.ceil(observation_window_seconds / model_timestep_seconds))
+            )
 
 
 if __name__ == "__main__":

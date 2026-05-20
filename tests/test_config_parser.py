@@ -1,6 +1,14 @@
 import os
 from suncet_instrument_simulator import config_parser
 
+DERIVED_CONFIG_ATTRIBUTES = {
+    'short_integration_window',
+    'long_integration_window',
+    'observation_window',
+    'output_stride_model_steps',
+}
+
+
 def test_config_parser():
     filename = os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'
     config = config_parser.Config(filename)
@@ -12,4 +20,5 @@ def test_config_parser():
                 num_parameters += 1
 
     assert len(vars(config)) != 0
-    assert len(vars(config)) == num_parameters
+    assert len(vars(config)) == num_parameters + len(DERIVED_CONFIG_ATTRIBUTES)
+    assert config.output_stride_model_steps >= 1

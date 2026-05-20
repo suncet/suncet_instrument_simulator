@@ -250,6 +250,15 @@ class Hardware:
                 radiance_maps_long[timestep][wavelength] = map_long * self.config.exposure_time_long
 
         return {"short exposure": radiance_maps_short, "long exposure": radiance_maps_long}
+
+    def apply_exposure_times_for_stack(self, radiance_maps_by_member, exposure_time):
+        exposed_maps_by_member = {}
+        for member_index, radiance_maps_by_wavelength in radiance_maps_by_member.items():
+            exposed_maps_by_member[member_index] = {}
+            for wavelength, map in radiance_maps_by_wavelength.items():
+                map_with_time = self.__set_exposure_time(map, exposure_time)
+                exposed_maps_by_member[member_index][wavelength] = map_with_time * exposure_time
+        return exposed_maps_by_member
     
     
     def __set_exposure_time(self, sunpy_map, new_exposure_time):
@@ -530,21 +539,21 @@ class OnboardSoftware:
         # return sunpy.map.MapSequence([map - self.dark_frame / map.meta['EXPOSURE'] for map in detector_images]) # TODO: Won't work until we have something sensible returned for make_dark_frame()
 
     def apply_jitter(self, onboard_processed_images):  # Note really onboard software, but this is the place in the logic it belongs
-        jitter_arcsec_per_timestep = self.config.jitter * self.config.model_timestep  # Units work easily here. This is going to be used for a single, coherent, instantaneous movement affecting the position of every feature in the image but not their sharpness.
-
         for exposure_type, image_dict in onboard_processed_images.items():
             if exposure_type == 'short exposure':
                 exposure_time = self.config.exposure_time_short
             else:
                 exposure_time = self.config.exposure_time_long
 
+            # Shift between stack members follows onboard integration cadence, not MHD model timestep.
+            jitter_arcsec_per_integration = self.config.jitter * exposure_time
             blur_amount = self.config.jitter * np.sqrt(exposure_time)  # The units here don't work but the sqrt is how we account for this being a continuous accumulation of the random walk. Features maintain their position, but lose their definition.
 
             # Apply jitter (shift and blur) to each image
             for index, image in image_dict.items():
                 # Convert jitter from arcsec to pixels
                 scale = image.scale[0]  # Assuming uniform scale in x and y
-                jitter_pixels = jitter_arcsec_per_timestep / scale
+                jitter_pixels = jitter_arcsec_per_integration / scale
                 blur_pixels = blur_amount / scale
 
                 # Generate random jitter offsets for shift
