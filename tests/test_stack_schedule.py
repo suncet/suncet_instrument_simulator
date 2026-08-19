@@ -1,9 +1,13 @@
 import math
+from pathlib import Path
 
 import astropy.units as u
 import pytest
 
 from suncet_instrument_simulator import config_parser, stack_schedule
+
+
+CONFIG_DIR = Path(__file__).resolve().parents[1] / 'suncet_instrument_simulator' / 'config_files'
 
 
 class _ConfigStub:
@@ -58,10 +62,7 @@ def test_filter_false_forces_single_integration(config_filename):
 
 
 def test_filter_true_requires_multi_member_stack():
-    filename = (
-        '/Users/masonjp2/Dropbox/suncet_dropbox/9000 Processing/code/suncet_instrument_simulator/'
-        'suncet_instrument_simulator/config_files/config_default.ini'
-    )
+    filename = CONFIG_DIR / 'config_default.ini'
     config = config_parser.Config(filename)
     assert config.num_short_exposures_to_stack >= 2
     assert config.num_long_exposures_to_stack >= 2
@@ -70,7 +71,4 @@ def test_filter_true_requires_multi_member_stack():
 
 @pytest.fixture
 def config_filename():
-    return (
-        '/Users/masonjp2/Dropbox/suncet_dropbox/9000 Processing/code/suncet_instrument_simulator/'
-        'suncet_instrument_simulator/config_files/config_mars_telecom_network.ini'
-    )
+    return CONFIG_DIR / 'config_mars_telecom_network.ini'
