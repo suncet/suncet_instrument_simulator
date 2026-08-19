@@ -28,6 +28,7 @@ setup(
     description='Simulate the Sun Coronal Ejection Tracker observations',
     url='https://github.com/suncet/suncet_instrument_simulator',
     install_requires=requirements,
+    package_data={'suncet_instrument_simulator': ['data/*.json']},
     packages=find_packages(),
     zip_safe=False,
 )

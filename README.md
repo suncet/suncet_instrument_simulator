@@ -1,5 +1,34 @@
 # SunCET Instrument Simulator
 
+## Make realistic Level 0.5 products
+
+`make_level0_5.py` wraps one or more synthetic FITS images in the same FITS-header
+and companion JSON metadata layout currently written by
+`suncet_processing_pipeline.make_level0_5_slowly_built_up`:
+
+```bash
+python make_level0_5.py synthetic/level0/fits/*.fits \
+  --image-id-start 10000 \
+  --suffix=-synthetic
+```
+
+Output defaults to `$suncet_data/synthetic/level0_5`. Use `--output-dir` only when
+an explicit alternate destination is needed.
+
+Image dimensions and `NBIN1`/`NBIN2` are used to populate the CSIE metadata;
+`EXPTIME` is also used when present. For telemetry values that cannot be produced
+by the simulator, the bundled CSIE v1.1.2 template contains representative flight
+values. To use housekeeping values from a particular real exposure, pass its
+pipeline-produced JSON file:
+
+```bash
+python make_level0_5.py synthetic.fits \
+  --metadata-template image_4112_meta.json --image-id-start 10000
+```
+
+`--row-bin`, `--col-bin`, `--exposure-ms`, and `--encoding` can override inferred
+values. Inputs must contain a 2-D numeric image whose values fit in unsigned 16 bits.
+
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
 [![Tests](https://github.com/suncet/suncet_instrument_simulator/actions/workflows/tests.yml/badge.svg)](https://github.com/suncet/suncet_instrument_simulator/actions/workflows/tests.yml)
 
