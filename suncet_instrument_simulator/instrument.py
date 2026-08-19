@@ -17,6 +17,13 @@ from sunpy.coordinates import frames
 from suncet_instrument_simulator import config_parser  # This is just for running as a script -- should delete when done testing
 
 
+def _wrap_to_unsigned(data, bit_depth, dtype=np.uint16):
+    """Floor negative codes at zero and wrap overflow at the digital bit depth."""
+    threshold = 1 << int(bit_depth)
+    nonnegative = np.maximum(np.asanyarray(data), 0)
+    return np.remainder(nonnegative, threshold).astype(dtype)
+
+
 class Hardware:
     def __init__(self, config):
         self.config = config
@@ -357,15 +364,13 @@ class Hardware:
         
         return detector_image
     
-    def __clip_at_bit_depth(self, detector_image):
-        # Clip values above maximum bit depth
-        mask_high = detector_image.data > 2**self.config.readout_bits.value - 1
-        detector_image.data[mask_high] = 2**self.config.readout_bits.value - 1
-        
-        # Clip negative values to 0
-        mask_low = detector_image.data < 0
-        detector_image.data[mask_low] = 0
-        return detector_image
+    def __wrap_at_bit_depth(self, detector_image):
+        data = _wrap_to_unsigned(
+            detector_image.data,
+            self.config.readout_bits.value,
+            dtype=np.uint16,
+        )
+        return sunpy.map.Map(data, detector_image.meta)
     
 
     def make_dark_frame(self):
@@ -500,13 +505,8 @@ class Hardware:
     def convert_to_dn(self, detector_images):
         gain_factor = self.config.detector_gain * u.electron / u.count  # TODO: fix these units once we can actually store things in electrons instead of counts (see GitHub issue cited above)
         detector_images = self.__apply_function_to_leaves(detector_images, lambda x: x * gain_factor)
-        detector_images = self.__apply_function_to_leaves(detector_images, self.__clip_at_bit_depth)
-        detector_images = self.__apply_function_to_leaves(detector_images, lambda x: sunpy.map.Map(x.data.astype(np.uint16), x.meta))
+        detector_images = self.__apply_function_to_leaves(detector_images, self.__wrap_at_bit_depth)
         return detector_images
-    
-        # TODO: Clip to DN max (Alan set the gain so that pixel full well [33k] electrons is 90% of the ADC dynamic range); therefore, if the image has already been clipped to full well, this clipping function shouldn't ever do anything
-        # return sunpy.map.MapSequence([map *  self.config.detector_gain # TODO: This is all that'll be needed once TODO above is addressed
-        #                              for map in detector_images])
 
 
 class OnboardSoftware:
@@ -585,12 +585,10 @@ class OnboardSoftware:
 
             sorted_indices = sorted(map_indices)
             maps = [onboard_processed_images[exposure_type][index] for index in sorted_indices]
-            stack = np.stack([map_obj.data for map_obj in maps], axis=-1)
-
-            stack = stack.astype(np.int32)
+            stack = np.stack([map_obj.data for map_obj in maps], axis=-1).astype(np.uint32)
 
             # Sum all values first, then subtract the maximum value (that's how flight firmware does it)
-            summed_data = np.sum(stack, axis=-1)
+            summed_data = np.sum(stack, axis=-1, dtype=np.uint32)
             max_values = np.max(stack, axis=-1)
             summed_data = summed_data - max_values
 
@@ -711,13 +709,16 @@ class OnboardSoftware:
         return new_map
     
     def bit_shift_data(self, onboard_processed_images):
-
-        # Shift the data to the right by the number of bits specified in the config to get big numbers to still fit in 16 bits
-        shift_factor = 2 ** self.config.num_shift_bits_32_to_16
-        shifted_data = (onboard_processed_images.data / shift_factor).astype(np.uint32)
-
-        max_value = 2**self.config.readout_bits.value - 1
-        data = np.clip(shifted_data, 0, max_value).astype(np.uint16)
+        # Particle filtering and binning use a 32-bit working buffer. Flight then
+        # applies an integer right shift and writes into the digital output buffer;
+        # values still beyond its bit depth wrap instead of saturating.
+        buffer_32 = np.asanyarray(onboard_processed_images.data).astype(np.uint32)
+        shifted_data = np.right_shift(buffer_32, self.config.num_shift_bits_32_to_16)
+        data = _wrap_to_unsigned(
+            shifted_data,
+            self.config.readout_bits.value,
+            dtype=np.uint16,
+        )
         new_map = sunpy.map.Map(data, onboard_processed_images.meta)
 
         return new_map
