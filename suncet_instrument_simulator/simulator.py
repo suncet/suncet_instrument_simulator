@@ -2,15 +2,43 @@
 This is the main wrapper for most/all(?) of the other instrument simulator related python files
 """
 import os
+import tempfile
 from glob import glob
 import astropy.units as u
 from astropy.io import fits
+from astropy.time import Time, TimeDelta
 import sunpy.map
 import pandas as pd
 import ast
 import numpy as np
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument, stack_schedule
- 
+
+
+def _set_observation_times(header, start_seconds, duration):
+    """Set observation timestamps from an instrument start time and duration."""
+    duration_seconds = (
+        float(duration.to_value(u.s)) if hasattr(duration, 'to_value') else float(duration)
+    )
+    start_offset = TimeDelta(float(start_seconds), format='sec')
+    duration_offset = TimeDelta(duration_seconds, format='sec')
+    time_scale = str(header.get('TIMESYS', 'UTC')).lower()
+
+    for keyword in ('DATE-BEG', 'DATE-OBS'):
+        timestamp = header.get(keyword)
+        if timestamp in (None, '', 'N/A'):
+            continue
+        shifted = Time(timestamp, format='isot', scale=time_scale, precision=3) + start_offset
+        header[keyword] = shifted.isot
+
+    sequence_epoch = header.get('DATE-BEG') or header.get('DATE-OBS')
+    if header.get('DATE-END') not in (None, '', 'N/A') and sequence_epoch is not None:
+        observation_start = Time(
+            sequence_epoch, format='isot', scale=time_scale, precision=3)
+        header['DATE-END'] = (observation_start + duration_offset).isot
+
+    return header
+
+
 class Simulator:
     def __init__(self, config_filename=os.getcwd() + '/suncet_instrument_simulator/config_files/config_default.ini'):
         self.config_filename = config_filename
@@ -25,13 +53,26 @@ class Simulator:
         return config_parser.Config(config_filename)
 
 
-    def run(self):
+    def run(self, observation_indices=None):
         self.hardware = instrument.Hardware(self.config)
         self.onboard_software = instrument.OnboardSoftware(self.config)
-        
-        timesteps = self.__get_timesteps()
-        for timestep in timesteps: 
-            self.current_timestep = timestep
+
+        observations = self.__get_observations()
+        if observation_indices is not None:
+            requested = {int(index) for index in observation_indices}
+            available = {observation.output_index for observation in observations}
+            unknown = sorted(requested - available)
+            if unknown:
+                raise ValueError('Unknown observation indices requested: {}'.format(unknown))
+            observations = [
+                observation for observation in observations
+                if observation.output_index in requested
+            ]
+
+        for observation in observations:
+            self.current_observation = observation
+            self.current_output_index = observation.output_index
+            self.current_timestep = str(self.current_output_index).zfill(3)
             self.__sun_emission()
             if self.radiance_maps_found:
                 self.__sun_to_detector()
@@ -44,10 +85,8 @@ class Simulator:
                 self.__output_files()
     
 
-    def __get_timesteps(self): 
-        first, last, _ = self.config.timesteps_to_process
-        step = self.config.output_stride_model_steps
-        return [str(i).zfill(3) for i in range(first, last + 1, step)]
+    def __get_observations(self):
+        return stack_schedule.build_observation_sequence(self.config)
 
 
     def __sun_emission(self): 
@@ -59,18 +98,34 @@ class Simulator:
 
     def __load_radiance_maps(self):
         self.radiance_maps_found = True
-        t0 = int(self.current_timestep)
-        self.stack_schedule = stack_schedule.build_stack_schedule(t0, self.config)
+        start_seconds = self.current_observation.start_seconds
+        self.stack_schedule = stack_schedule.build_stack_schedule_at_time(
+            start_seconds, self.config)
         required_indices = self.stack_schedule.unique_model_indices
         filenames = self.__get_radiance_map_filenames(required_indices)
-        if len(filenames) < len(required_indices):
+        available_indices = sorted(
+            int(os.path.basename(filename).split('_')[-1].replace('.fits', ''))
+            for filename in filenames
+        )
+        available_prefix = required_indices[:len(available_indices)]
+        if not available_indices or available_indices != available_prefix:
             print(
-                'Need {} radiance maps for observation at model index {} but only found {}.'.format(
-                    len(required_indices), self.current_timestep, len(filenames)
+                'Need {} radiance maps for output {} at {:.6g} seconds but only found {}.'.format(
+                    len(required_indices), self.current_output_index, start_seconds, len(filenames)
                 )
             )
             self.radiance_maps_found = False
             return
+        if len(available_indices) < len(required_indices):
+            print(
+                'Missing trailing radiance maps {} for output {} at {:.6g} seconds; '
+                'padding with model index {}.'.format(
+                    required_indices[len(available_indices):],
+                    self.current_output_index,
+                    start_seconds,
+                    available_indices[-1],
+                )
+            )
 
         self.radiance_by_model_index = {}
         for filename in filenames:
@@ -85,8 +140,8 @@ class Simulator:
             self.radiance_by_model_index[index] = maps_by_wavelength
 
         available_indices = sorted(self.radiance_by_model_index.keys())
-        self.stack_schedule = stack_schedule.build_stack_schedule(
-            t0, self.config, available_indices=available_indices
+        self.stack_schedule = stack_schedule.build_stack_schedule_at_time(
+            start_seconds, self.config, available_indices=available_indices
         )
 
 
@@ -391,6 +446,11 @@ class Simulator:
         header.set('NBIN1', value=self.config.num_pixels_to_bin[0])
         header.set('NBIN2', value=self.config.num_pixels_to_bin[1])
         header.set('DET_TEMP', value=self.config.detector_temperature.value)
+        _set_observation_times(
+            header,
+            start_seconds=self.current_observation.start_seconds,
+            duration=self.config.observation_window,
+        )
 
         # values from map are now copied in above, so the following is superfluous
         # header.set('EXPTIME', map.meta['EXPTIME'])
@@ -423,11 +483,16 @@ class Simulator:
 
     def __convert_sunpy_meta_to_fits_header(self, map):
         # This is a really stupid way to get this done, but all the more elegant ways tried to date (2023-12-07) have not worked
-        map.save('tmp.fits')
-        with fits.open('tmp.fits') as hdul:
-            header = hdul[0].header
-        os.remove('tmp.fits')
-        return header
+        file_descriptor, temporary_filename = tempfile.mkstemp(suffix='.fits')
+        os.close(file_descriptor)
+        os.remove(temporary_filename)
+        try:
+            map.save(temporary_filename)
+            with fits.open(temporary_filename) as hdul:
+                return hdul[0].header.copy()
+        finally:
+            if os.path.exists(temporary_filename):
+                os.remove(temporary_filename)
 
 
     def __output_files(self):
@@ -439,10 +504,11 @@ class Simulator:
 
     def __write_fits(self):
         path = os.getenv('suncet_data') + '/synthetic/level0/fits/'
-        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + self.fits[0].header['DATE-OBS'] + '_' + self.current_timestep + '.fits'
+        output_index = str(self.current_output_index).zfill(3)
+        filename = os.path.splitext(os.path.basename(self.config_filename))[0] + '_OBS_' + self.fits[0].header['DATE-OBS'] + '_' + output_index + '.fits'
         self.fits[0].header.set('FILENAME', value=filename)
         
-        self.fits.writeto(path+filename, overwrite=True)
+        self.fits.writeto(path+filename, overwrite=True, checksum=True)
         print('Wrote file: {}'.format(path+filename))
 
 

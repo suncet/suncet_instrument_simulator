@@ -15,9 +15,15 @@ class MapContribution:
     weight: float
 
 
+@dataclass(frozen=True)
+class Observation:
+    output_index: int
+    start_seconds: float
+
+
 @dataclass
 class ExposureStackSchedule:
-    t0: int
+    start_seconds: float
     short_members: list
     long_members: list
 
@@ -47,31 +53,50 @@ def observation_window_seconds(config):
 
 
 def output_stride_model_steps(config):
-  if not config.filter_out_particle_hits:
-    return 1
   model_dt = _to_seconds(config.model_timestep)
   window = observation_window_seconds(config)
-  return max(1, int(math.ceil(window / model_dt)))
+  return window / model_dt
+
+
+def build_observation_sequence(config):
+  """Build instrument-cadence output starts within the configured model bounds."""
+  # The third timesteps_to_process value selects maps during radiance-map
+  # generation; it is not an instrument output stride.
+  first_model_index, last_model_index, _radiance_map_generation_step = (
+    config.timesteps_to_process)
+  model_dt = _to_seconds(config.model_timestep)
+  cadence = observation_window_seconds(config)
+  if cadence <= 0:
+    raise ValueError('Observation cadence must be positive.')
+
+  first_start = first_model_index * model_dt
+  last_start = last_model_index * model_dt
+  num_intervals = int(math.floor((last_start - first_start) / cadence + 1e-12))
+  return [
+    Observation(output_index=index, start_seconds=first_start + index * cadence)
+    for index in range(num_intervals + 1)
+  ]
+
+
+def model_indices_to_load_at_time(start_seconds, config):
+  model_dt = _to_seconds(config.model_timestep)
+  window = observation_window_seconds(config)
+  end_time = start_seconds + window
+  first_index = int(math.floor(start_seconds / model_dt))
+  last_index = int(math.floor((end_time - 1e-12) / model_dt))
+  return list(range(first_index, last_index + 1))
 
 
 def model_indices_to_load(t0, config):
-  model_dt = _to_seconds(config.model_timestep)
-  window = observation_window_seconds(config)
-  t0_seconds = t0 * model_dt
-  end_time = t0_seconds + window
-  indices = []
-  n = t0
-  while n * model_dt < end_time:
-    indices.append(n)
-    n += 1
-  return indices
+  """Backward-compatible wrapper for a start expressed as a model index."""
+  return model_indices_to_load_at_time(t0 * _to_seconds(config.model_timestep), config)
 
 
-def _overlap_contributions(t0, integration_index, exposure_time, model_timestep):
+def _overlap_contributions_at_time(
+    observation_start_seconds, integration_index, exposure_time, model_timestep):
   exposure_s = _to_seconds(exposure_time)
   model_dt = _to_seconds(model_timestep)
-  t0_seconds = t0 * model_dt
-  t_start = t0_seconds + integration_index * exposure_s
+  t_start = observation_start_seconds + integration_index * exposure_s
   t_end = t_start + exposure_s
 
   contributions = []
@@ -88,16 +113,23 @@ def _overlap_contributions(t0, integration_index, exposure_time, model_timestep)
       contributions.append(MapContribution(model_index=n, weight=weight))
 
   if not contributions:
-    contributions.append(MapContribution(model_index=max(t0, n_start), weight=1.0))
+    contributions.append(MapContribution(model_index=n_start, weight=1.0))
 
   return contributions
 
 
-def _pad_contributions(contributions, available_indices, t0):
+def _overlap_contributions(t0, integration_index, exposure_time, model_timestep):
+  """Backward-compatible wrapper for a start expressed as a model index."""
+  model_dt = _to_seconds(model_timestep)
+  return _overlap_contributions_at_time(
+    t0 * model_dt, integration_index, exposure_time, model_timestep)
+
+
+def _pad_contributions(contributions, available_indices):
   if not available_indices:
     raise ValueError('No radiance maps available to pad stack schedule.')
 
-  last_in_window = max(i for i in available_indices if i >= t0)
+  last_in_window = max(available_indices)
   padded = []
   for contribution in contributions:
     if contribution.model_index in available_indices:
@@ -107,37 +139,47 @@ def _pad_contributions(contributions, available_indices, t0):
   return padded
 
 
-def build_exposure_stack_members(t0, exposure_time, num_integrations, model_timestep,
+def build_exposure_stack_members(start_seconds, exposure_time, num_integrations, model_timestep,
                                  available_indices):
   members = []
   for integration_index in range(num_integrations):
-    contributions = _overlap_contributions(
-      t0, integration_index, exposure_time, model_timestep)
-    members.append(_pad_contributions(contributions, available_indices, t0))
+    contributions = _overlap_contributions_at_time(
+      start_seconds, integration_index, exposure_time, model_timestep)
+    members.append(_pad_contributions(contributions, available_indices))
   return members
 
 
-def build_stack_schedule(t0, config, available_indices=None):
+def build_stack_schedule_at_time(start_seconds, config, available_indices=None):
   if available_indices is None:
-    available_indices = model_indices_to_load(t0, config)
+    available_indices = model_indices_to_load_at_time(start_seconds, config)
   available_set = set(available_indices)
 
   short_members = build_exposure_stack_members(
-    t0,
+    start_seconds,
     config.exposure_time_short,
     config.num_short_exposures_to_stack,
     config.model_timestep,
     available_set,
   )
   long_members = build_exposure_stack_members(
-    t0,
+    start_seconds,
     config.exposure_time_long,
     config.num_long_exposures_to_stack,
     config.model_timestep,
     available_set,
   )
 
-  return ExposureStackSchedule(t0=t0, short_members=short_members, long_members=long_members)
+  return ExposureStackSchedule(
+    start_seconds=start_seconds,
+    short_members=short_members,
+    long_members=long_members,
+  )
+
+
+def build_stack_schedule(t0, config, available_indices=None):
+  """Backward-compatible wrapper for a start expressed as a model index."""
+  start_seconds = t0 * _to_seconds(config.model_timestep)
+  return build_stack_schedule_at_time(start_seconds, config, available_indices)
 
 
 def combine_radiance_for_member(contributions, radiance_by_model_index):

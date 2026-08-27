@@ -18,6 +18,7 @@ class _ConfigStub:
         self.num_short_exposures_to_stack = 9
         self.num_long_exposures_to_stack = 4
         self.filter_out_particle_hits = True
+        self.timesteps_to_process = [0, 360, 1]
 
 
 def test_short_stack_uses_single_model_index():
@@ -43,6 +44,40 @@ def test_long_first_integration_spans_two_model_maps():
     assert first_member[1].weight == pytest.approx(5.0 / 15.0)
 
 
+def test_long_second_integration_start_spans_fractional_model_boundary():
+    config = _ConfigStub()
+    config.num_short_exposures_to_stack = 1
+    config.num_long_exposures_to_stack = 1
+    schedule = stack_schedule.build_stack_schedule_at_time(
+        15.0, config, available_indices=[1, 2])
+
+    member = schedule.long_members[0]
+    assert [contribution.model_index for contribution in member] == [1, 2]
+    assert [contribution.weight for contribution in member] == pytest.approx(
+        [5.0 / 15.0, 10.0 / 15.0]
+    )
+
+
+def test_arbitrary_configured_timings_drive_cadence_and_overlap_weights():
+    config = _ConfigStub()
+    config.model_timestep = 7 * u.s
+    config.exposure_time_short = 2 * u.s
+    config.num_short_exposures_to_stack = 4
+    config.exposure_time_long = 11 * u.s
+    config.num_long_exposures_to_stack = 3
+    config.timesteps_to_process = [2, 20, 1]
+
+    observations = stack_schedule.build_observation_sequence(config)
+    schedule = stack_schedule.build_stack_schedule_at_time(47.0, config)
+
+    assert stack_schedule.output_stride_model_steps(config) == pytest.approx(33.0 / 7.0)
+    assert [observation.start_seconds for observation in observations] == [14, 47, 80, 113]
+    assert [contribution.model_index for contribution in schedule.long_members[0]] == [6, 7, 8]
+    assert [contribution.weight for contribution in schedule.long_members[0]] == pytest.approx(
+        [2.0 / 11.0, 7.0 / 11.0, 2.0 / 11.0]
+    )
+
+
 def test_output_stride_matches_observation_window():
     config = _ConfigStub()
     assert stack_schedule.output_stride_model_steps(config) == 6
@@ -58,7 +93,29 @@ def test_filter_false_forces_single_integration(config_filename):
     config = config_parser.Config(filename)
     assert config.num_short_exposures_to_stack == 1
     assert config.num_long_exposures_to_stack == 1
-    assert config.output_stride_model_steps == 1
+    assert config.output_stride_model_steps == pytest.approx(1.5)
+
+
+def test_filter_false_sequence_uses_instrument_cadence(config_filename):
+    config = config_parser.Config(config_filename)
+    observations = stack_schedule.build_observation_sequence(config)
+
+    assert len(observations) == 241
+    assert observations[0] == stack_schedule.Observation(0, 0.0)
+    assert observations[1] == stack_schedule.Observation(1, 15.0)
+    assert observations[-1] == stack_schedule.Observation(240, 3600.0)
+
+
+def test_filter_false_pads_terminal_long_exposure_with_last_available_map(config_filename):
+    config = config_parser.Config(config_filename)
+    schedule = stack_schedule.build_stack_schedule(360, config, available_indices=[360])
+
+    assert schedule.unique_model_indices == [360]
+    assert len(schedule.long_members) == 1
+    assert [contribution.model_index for contribution in schedule.long_members[0]] == [360, 360]
+    assert [contribution.weight for contribution in schedule.long_members[0]] == pytest.approx(
+        [10.0 / 15.0, 5.0 / 15.0]
+    )
 
 
 def test_filter_true_requires_multi_member_stack():
@@ -67,6 +124,17 @@ def test_filter_true_requires_multi_member_stack():
     assert config.num_short_exposures_to_stack >= 2
     assert config.num_long_exposures_to_stack >= 2
     assert config.output_stride_model_steps == math.ceil(60 / 10)
+
+
+def test_filter_true_sequence_uses_collapsed_stack_window():
+    filename = CONFIG_DIR / 'config_default.ini'
+    config = config_parser.Config(filename)
+    observations = stack_schedule.build_observation_sequence(config)
+
+    assert len(observations) == 61
+    assert observations[0].start_seconds == 0
+    assert observations[1].start_seconds == 60
+    assert observations[-1].start_seconds == 3600
 
 
 @pytest.fixture

@@ -1,4 +1,3 @@
-import math
 import os
 import configparser
 import json
@@ -107,14 +106,9 @@ class Config:
         )
         self.observation_window = max(self.short_integration_window, self.long_integration_window)
 
-        if not self.filter_out_particle_hits:
-            self.output_stride_model_steps = 1
-        else:
-            model_timestep_seconds = self.model_timestep.to(u.second).value
-            observation_window_seconds = self.observation_window.to(u.second).value
-            self.output_stride_model_steps = max(
-                1, int(math.ceil(observation_window_seconds / model_timestep_seconds))
-            )
+        model_timestep_seconds = self.model_timestep.to(u.second).value
+        observation_window_seconds = self.observation_window.to(u.second).value
+        self.output_stride_model_steps = observation_window_seconds / model_timestep_seconds
 
 
 if __name__ == "__main__":
