@@ -146,11 +146,15 @@ class Simulator:
 
 
     def __get_radiance_map_filenames(self, model_indices):
-        base_directory = os.getenv('suncet_data') + self.config.model_data_folder + '/' + self.config.map_directory_name + '/'
+        base_directory = os.path.join(
+            os.getenv('suncet_data'),
+            self.config.model_data_folder.strip('/'),
+            self.config.euv_radiance_map_directory_name.strip('/'),
+        )
         filenames = []
         for model_index in model_indices:
             file_pattern = 'radiance_maps_' + str(model_index).zfill(3) + '.fits'
-            filenames.extend(glob(base_directory + file_pattern))
+            filenames.extend(glob(os.path.join(base_directory, file_pattern)))
         return sorted(filenames)
 
 

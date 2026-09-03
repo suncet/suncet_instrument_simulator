@@ -25,8 +25,8 @@ class Config:
         self.timesteps_to_process = json.loads(config.get('behavior', 'timesteps_to_process'))
         self.SNR_window = config['behavior'].getint('SNR_window') * u.pix
         self.model_directory_name = config['behavior']['model_directory_name']
-        self.em_directory_name = config['behavior']['em_directory_name']
-        self.map_directory_name = config['behavior']['map_directory_name']
+        self.em_map_directory_name = config['behavior']['em_map_directory_name']
+        self.euv_radiance_map_directory_name = config['behavior']['euv_radiance_map_directory_name']
 
         # limits
         self.wavelength_limits = json.loads(config.get('limits', 'wavelength_limits')) * u.Angstrom

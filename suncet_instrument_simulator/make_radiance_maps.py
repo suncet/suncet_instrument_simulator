@@ -49,7 +49,12 @@ class MakeRadianceMaps:
             raise ValueError('Emissivity file not found. Make sure that your emissivity file is saved as {}'.format(expected_filename))
 
     def __parse_filenames(self):
-        expected_em_filenames = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.em_directory_name + 'em_map_*.sav'
+        expected_em_filenames = os.path.join(
+            os.getenv('suncet_data'),
+            self.config.model_directory_name.strip('/'),
+            self.config.em_map_directory_name.strip('/'),
+            'em_map_*.sav',
+        )
         em_maps_filename = glob(expected_em_filenames)
         file_number_strings = [re.match(r'.*(\d\d\d).*', filename).group(1) for filename in em_maps_filename]
         file_numbers = np.array(list(map(int, file_number_strings)))
@@ -132,7 +137,7 @@ class MakeRadianceMaps:
                     'No radiance-map WCS profile is defined for {!r}; using the '
                     'legacy header values.'.format(self.config.model_directory_name)
                 )
-            sequence_start = Time('2023-02-14T17:00:00.000', format='isot', scale='utc')
+            sequence_start = Time('2011-02-15T17:00:00.000', format='isot', scale='utc')
             half_fov_solar_radii = 5.6
 
         # EM-map N represents the state N model cadences after frame zero.
@@ -206,6 +211,7 @@ class MakeRadianceMaps:
 
     def __save_map_sequence(self):
         map_file_out = self.__make_outgoing_filename()
+        os.makedirs(os.path.dirname(map_file_out), exist_ok=True)
         for n, map in enumerate(self.map_seq):
             solar_params = self.__solve_solar_params(header=map.fits_header)
             if n == 0:
@@ -231,7 +237,12 @@ class MakeRadianceMaps:
     def __make_outgoing_filename(self):
         file_number_string = re.match(r'.*(\d\d\d).*', self.em_maps_filename).group(1)
         print(self.em_maps_filename)
-        map_file_out = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.map_directory_name + '/radiance_maps_' + file_number_string + '.fits'
+        map_file_out = os.path.join(
+            os.getenv('suncet_data'),
+            self.config.model_directory_name.strip('/'),
+            self.config.euv_radiance_map_directory_name.strip('/'),
+            'radiance_maps_' + file_number_string + '.fits',
+        )
         return map_file_out
 
 if __name__ == "__main__":
