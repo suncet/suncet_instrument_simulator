@@ -10,6 +10,7 @@ from astropy.io import fits
 import re
 import warnings
 import astropy.units as u
+from astropy.time import Time
 
 class MakeRadianceMaps:
     def __init__(self, config = None):
@@ -50,7 +51,7 @@ class MakeRadianceMaps:
     def __parse_filenames(self):
         expected_em_filenames = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.em_directory_name + 'em_map_*.sav'
         em_maps_filename = glob(expected_em_filenames)
-        file_number_strings = [re.match('.*(\d\d\d).*', filename).group(1) for filename in em_maps_filename]
+        file_number_strings = [re.match(r'.*(\d\d\d).*', filename).group(1) for filename in em_maps_filename]
         file_numbers = np.array(list(map(int, file_number_strings)))
         n_files_to_process = np.floor(
             (self.config.timesteps_to_process[1] + 1 - self.config.timesteps_to_process[0]) / self.config.timesteps_to_process[2])
@@ -112,10 +113,44 @@ class MakeRadianceMaps:
 
 
     def __make_header_template(self):
+        model_directory_name = self.config.model_directory_name.lower()
+        legacy_model_names = ('bright_fast', 'dimmest', 'bright_slow')
+        frame_match = re.search(r'em_map_(\d+)', os.path.basename(self.em_maps_filename))
+        if frame_match is None:
+            raise ValueError(
+                'Could not determine the model frame number from {}'.format(
+                    self.em_maps_filename)
+            )
+        frame_index = int(frame_match.group(1))
+
+        if 'three_viewpoint_2000_kmps' in model_directory_name:
+            sequence_start = Time('2012-03-08T20:00:00.000', format='isot', scale='utc')
+            half_fov_solar_radii = 6.4
+        else:
+            if not any(name in model_directory_name for name in legacy_model_names):
+                warnings.warn(
+                    'No radiance-map WCS profile is defined for {!r}; using the '
+                    'legacy header values.'.format(self.config.model_directory_name)
+                )
+            sequence_start = Time('2023-02-14T17:00:00.000', format='isot', scale='utc')
+            half_fov_solar_radii = 5.6
+
+        # EM-map N represents the state N model cadences after frame zero.
+        date_obs = (sequence_start + frame_index * self.config.model_timestep).isot
+
+        # The model geometry uses the nominal solar angular radius of 960 arcsec.
+        # This reproduces the legacy 10.5 arcsec/pixel value for a +/-5.6 R_sun
+        # field of view and gives 12.0 arcsec/pixel for +/-6.4 R_sun:
+        # CDELT = (2 * half-FOV [R_sun] * 960 arcsec/R_sun) / pixels.
+        nominal_solar_radius_arcsec = 960.0
+        map_height_pixels, map_width_pixels = self.raw_radiance.shape[-2:]
+        cdelt1 = 2 * half_fov_solar_radii * nominal_solar_radius_arcsec / map_width_pixels
+        cdelt2 = 2 * half_fov_solar_radii * nominal_solar_radius_arcsec / map_height_pixels
+
         # TODO: figure out what format SunPy maps want the solar radius keyword
         header = {}
         header['LONGSTRN'] = 'OGIP 1.0'
-        header['DATE-OBS'] = '2023-02-14T17:00:00.000'
+        header['DATE-OBS'] = date_obs
         header['CTYPE1'] = 'HPLN-TAN'
         header['CTYPE2'] = 'HPLT-TAN'
         header['CUNIT1'] = 'arcsec  '
@@ -125,8 +160,8 @@ class MakeRadianceMaps:
         header['LONPOLE'] = 180.0
         header['CRPIX1'] = 512.5
         header['CRPIX2'] = 512.5
-        header['CDELT1'] = 10.5
-        header['CDELT2'] = 10.5
+        header['CDELT1'] = cdelt1
+        header['CDELT2'] = cdelt2
         header['CROTA2'] = 0.0
         header['PC1_1'] = 1.0
         header['PC1_2'] = 0.0
@@ -194,7 +229,7 @@ class MakeRadianceMaps:
 
 
     def __make_outgoing_filename(self):
-        file_number_string = re.match('.*(\d\d\d).*', self.em_maps_filename).group(1)
+        file_number_string = re.match(r'.*(\d\d\d).*', self.em_maps_filename).group(1)
         print(self.em_maps_filename)
         map_file_out = os.getenv('suncet_data') + self.config.model_directory_name + '/' + self.config.map_directory_name + '/radiance_maps_' + file_number_string + '.fits'
         return map_file_out
@@ -202,4 +237,3 @@ class MakeRadianceMaps:
 if __name__ == "__main__":
     radiance_map = MakeRadianceMaps()
     radiance_map.run()
-
