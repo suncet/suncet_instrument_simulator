@@ -12,6 +12,30 @@ import warnings
 import astropy.units as u
 from astropy.time import Time
 
+
+LEGACY_MODEL_NAMES = ('bright_fast', 'dimmest', 'bright_slow')
+THREE_VIEWPOINT_MODEL_NAME = 'three_viewpoint_2000_kmps'
+
+
+def model_sequence_properties(model_directory_name):
+    """Return the frame-zero time and half-FOV for a supported MHD model."""
+    normalized_name = model_directory_name.lower()
+    if THREE_VIEWPOINT_MODEL_NAME in normalized_name:
+        return Time('2012-03-08T20:00:00.000', format='isot', scale='utc'), 6.4
+    if any(name in normalized_name for name in LEGACY_MODEL_NAMES):
+        return Time('2011-02-15T17:00:00.000', format='isot', scale='utc'), 5.6
+    raise ValueError(
+        'No radiance-map time and WCS profile is defined for {!r}.'.format(
+            model_directory_name)
+    )
+
+
+def model_frame_observation_time(model_directory_name, frame_index, model_timestep):
+    """Return DATE-OBS for a model frame using its sequence epoch and cadence."""
+    sequence_start, _ = model_sequence_properties(model_directory_name)
+    return (sequence_start + int(frame_index) * model_timestep).isot
+
+
 class MakeRadianceMaps:
     def __init__(self, config = None):
         if config is None:
@@ -118,8 +142,6 @@ class MakeRadianceMaps:
 
 
     def __make_header_template(self):
-        model_directory_name = self.config.model_directory_name.lower()
-        legacy_model_names = ('bright_fast', 'dimmest', 'bright_slow')
         frame_match = re.search(r'em_map_(\d+)', os.path.basename(self.em_maps_filename))
         if frame_match is None:
             raise ValueError(
@@ -127,21 +149,15 @@ class MakeRadianceMaps:
                     self.em_maps_filename)
             )
         frame_index = int(frame_match.group(1))
-
-        if 'three_viewpoint_2000_kmps' in model_directory_name:
-            sequence_start = Time('2012-03-08T20:00:00.000', format='isot', scale='utc')
-            half_fov_solar_radii = 6.4
-        else:
-            if not any(name in model_directory_name for name in legacy_model_names):
-                warnings.warn(
-                    'No radiance-map WCS profile is defined for {!r}; using the '
-                    'legacy header values.'.format(self.config.model_directory_name)
-                )
-            sequence_start = Time('2011-02-15T17:00:00.000', format='isot', scale='utc')
-            half_fov_solar_radii = 5.6
+        _, half_fov_solar_radii = model_sequence_properties(
+            self.config.model_directory_name)
 
         # EM-map N represents the state N model cadences after frame zero.
-        date_obs = (sequence_start + frame_index * self.config.model_timestep).isot
+        date_obs = model_frame_observation_time(
+            self.config.model_directory_name,
+            frame_index,
+            self.config.model_timestep,
+        )
 
         # The model geometry uses the nominal solar angular radius of 960 arcsec.
         # This reproduces the legacy 10.5 arcsec/pixel value for a +/-5.6 R_sun

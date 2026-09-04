@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import math
 
 import astropy.units as u
+from astropy.time import Time, TimeDelta
 import numpy as np
 import sunpy.map
 
@@ -182,7 +183,8 @@ def build_stack_schedule(t0, config, available_indices=None):
   return build_stack_schedule_at_time(start_seconds, config, available_indices)
 
 
-def combine_radiance_for_member(contributions, radiance_by_model_index):
+def combine_radiance_for_member(contributions, radiance_by_model_index, *,
+                                start_seconds, model_timestep):
   normalized = _normalize_contributions(contributions)
   reference_index = normalized[0].model_index
   reference_map = _get_reference_wavelength_map(radiance_by_model_index, reference_index)
@@ -193,16 +195,34 @@ def combine_radiance_for_member(contributions, radiance_by_model_index):
     for contribution in normalized:
       source_map = radiance_by_model_index[contribution.model_index][wavelength]
       combined_data += contribution.weight * source_map.data
-    combined_by_wavelength[wavelength] = sunpy.map.Map(combined_data, reference.meta)
+    # The model timestamp already includes reference_index * model_timestep.
+    # Add only the integration's offset from that frame. This also timestamps
+    # integrations between model frames and integrations padded with the final
+    # frame correctly, without advancing the model epoch a second time.
+    timestamp = reference.meta.get('DATE-OBS')
+    if timestamp in (None, '', 'N/A'):
+      raise ValueError('Radiance map does not contain a valid DATE-OBS.')
+    time_scale = str(reference.meta.get('TIMESYS', 'UTC')).strip().lower()
+    reference_time = Time(timestamp, format='isot', scale=time_scale, precision=6).utc
+    offset_seconds = start_seconds - reference_index * _to_seconds(model_timestep)
+    integration_start = reference_time + TimeDelta(offset_seconds, format='sec')
+    metadata = reference.meta.copy()
+    metadata['DATE-OBS'] = integration_start.isot
+    metadata['TIMESYS'] = 'UTC'
+    combined_by_wavelength[wavelength] = sunpy.map.Map(combined_data, metadata)
 
   return combined_by_wavelength
 
 
-def build_radiance_by_stack_member(stack_members, radiance_by_model_index):
+def build_radiance_by_stack_member(stack_members, radiance_by_model_index, *,
+                                   start_seconds, exposure_time, model_timestep):
+  """Combine each integration's scene and timestamp its actual start time."""
   radiance_by_member = {}
   for member_index, contributions in enumerate(stack_members):
     radiance_by_member[member_index] = combine_radiance_for_member(
-      contributions, radiance_by_model_index)
+      contributions, radiance_by_model_index,
+      start_seconds=start_seconds + member_index * _to_seconds(exposure_time),
+      model_timestep=model_timestep)
   return radiance_by_member
 
 

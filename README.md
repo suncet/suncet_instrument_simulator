@@ -1,5 +1,36 @@
 # SunCET Instrument Simulator
 
+## Simulator timestamps and existing files
+
+Radiance-map `DATE-OBS` is the model epoch plus the filename's frame index times
+`model_timestep`. The three-viewpoint epoch is `2012-03-08T20:00:00.000` UTC;
+the bright-fast, bright-slow, and dimmest epoch is `2011-02-15T17:00:00.000` UTC.
+Instrument integrations inherit the source map's time, with an offset only when
+their start differs from that model frame. Final `DATE-BEG` and `DATE-OBS` come
+from the first integration; `DATE-END` adds the full observation window. The
+metadata CSV's typical timestamps are not used.
+
+These one-off utilities default to inspection only. Run them in the simulator's
+Python environment, with `suncet_data` set to your data directory:
+
+```bash
+python repair_radiance_map_timestamps.py "$suncet_data/mhd"
+python repair_simulator_output_timestamps.py suncet_instrument_simulator/config_files/config_three_viewpoint_limb.ini
+```
+
+Append `--write` to apply repairs after inspection. The radiance utility assumes
+a 10-second cadence unless `--cadence-seconds` is supplied, edits every wavelength
+HDU, and saves compressed original headers beside each repaired file. To undo
+a repair, pass its `.timestamp-headers.json.gz` backup with `--restore`.
+Nonstandard filenames are reported and excluded from the recursive scan.
+
+The output utility uses each supplied config's schedule and the corresponding
+cached radiance timestamps. It repairs time cards and filenames, verifies image
+data/checksums, and backs up originals under
+`$suncet_data/synthetic/level0/timestamp_repair_backups/`. If a correct output
+already occupies the destination, the older duplicate is archived there.
+Use the configuration settings from the original run when repairing outputs.
+
 ## Make realistic Level 0.5 products
 
 `make_level0_5.py` wraps one or more synthetic FITS images in the same FITS-header

@@ -137,6 +137,7 @@ dmypy.json
 .vscode/settings.json
 SunCET_MapSeq.fits
 jpm.prof
+nohup.out
 suncet_instrument_simulator/explore_output_images.ipynb
 suncet_instrument_simulator/Test Raytrace.jpeg
 suncet_instrument_simulator/Test Raytrace.fits

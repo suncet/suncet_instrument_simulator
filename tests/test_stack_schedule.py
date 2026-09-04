@@ -2,7 +2,10 @@ import math
 from pathlib import Path
 
 import astropy.units as u
+from astropy.time import Time
+import numpy as np
 import pytest
+import sunpy.map
 
 from suncet_instrument_simulator import config_parser, stack_schedule
 
@@ -56,6 +59,52 @@ def test_long_second_integration_start_spans_fractional_model_boundary():
     assert [contribution.weight for contribution in member] == pytest.approx(
         [5.0 / 15.0, 10.0 / 15.0]
     )
+
+
+def _radiance_map(index, model_timestep=10 * u.s):
+    metadata = {
+        'CTYPE1': 'HPLN-TAN', 'CTYPE2': 'HPLT-TAN',
+        'CUNIT1': 'arcsec', 'CUNIT2': 'arcsec',
+        'CDELT1': 12., 'CDELT2': 12.,
+        'DATE-OBS': (Time('2012-03-08T20:00:00') + index * model_timestep).isot,
+    }
+    return sunpy.map.Map(np.full((2, 2), index, dtype=float), metadata)
+
+
+def test_integration_maps_preserve_epoch_and_use_actual_start_between_model_frames():
+    config = _ConfigStub()
+    config.num_long_exposures_to_stack = 2
+    schedule = stack_schedule.build_stack_schedule_at_time(15.0, config)
+    source_maps = {
+        index: {'170 Angstrom': _radiance_map(index)}
+        for index in schedule.unique_model_indices
+    }
+
+    members = stack_schedule.build_radiance_by_stack_member(
+        schedule.long_members, source_maps, start_seconds=15.0,
+        exposure_time=config.exposure_time_long, model_timestep=config.model_timestep)
+
+    assert members[0]['170 Angstrom'].date.isot == '2012-03-08T20:00:15.000'
+    assert members[1]['170 Angstrom'].date.isot == '2012-03-08T20:00:30.000'
+    np.testing.assert_allclose(members[0]['170 Angstrom'].data, 5. / 3.)
+    assert source_maps[1]['170 Angstrom'].meta['DATE-OBS'] == '2012-03-08T20:00:10.000'
+
+
+def test_terminal_padding_advances_integration_time_while_reusing_last_scene():
+    config = _ConfigStub()
+    schedule = stack_schedule.build_stack_schedule_at_time(3600.0, config, [360])
+    source_maps = {360: {'170 Angstrom': _radiance_map(360)}}
+
+    members = stack_schedule.build_radiance_by_stack_member(
+        schedule.long_members, source_maps, start_seconds=3600.0,
+        exposure_time=config.exposure_time_long, model_timestep=config.model_timestep)
+
+    assert [member['170 Angstrom'].date.isot for member in members.values()] == [
+        '2012-03-08T21:00:00.000', '2012-03-08T21:00:15.000',
+        '2012-03-08T21:00:30.000', '2012-03-08T21:00:45.000',
+    ]
+    for member in members.values():
+        np.testing.assert_array_equal(member['170 Angstrom'].data, source_maps[360]['170 Angstrom'].data)
 
 
 def test_arbitrary_configured_timings_drive_cadence_and_overlap_weights():

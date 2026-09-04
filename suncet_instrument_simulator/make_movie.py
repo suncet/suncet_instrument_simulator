@@ -83,7 +83,7 @@ def plot_scaled_image(data, output_filename, scale=None):
 
 # Configure script here
 path = os.getenv('suncet_data') + '/synthetic/level0/fits/'
-filenames = 'config_default_OBS_2023-02-14T17:00:00.000_*.fits'
+filenames = 'config_default_OBS_*.fits'
 do_difference = False
 
 

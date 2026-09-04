@@ -14,27 +14,22 @@ import numpy as np
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument, stack_schedule
 
 
-def _set_observation_times(header, start_seconds, duration):
-    """Set observation timestamps from an instrument start time and duration."""
+def _set_observation_times_from_map(header, map_header, duration):
+    """Set output timestamps from the already-timed input radiance map."""
     duration_seconds = (
         float(duration.to_value(u.s)) if hasattr(duration, 'to_value') else float(duration)
     )
-    start_offset = TimeDelta(float(start_seconds), format='sec')
     duration_offset = TimeDelta(duration_seconds, format='sec')
-    time_scale = str(header.get('TIMESYS', 'UTC')).lower()
+    timestamp = map_header.get('DATE-OBS')
+    if timestamp in (None, '', 'N/A'):
+        raise ValueError('Processed radiance map does not contain a valid DATE-OBS.')
 
-    for keyword in ('DATE-BEG', 'DATE-OBS'):
-        timestamp = header.get(keyword)
-        if timestamp in (None, '', 'N/A'):
-            continue
-        shifted = Time(timestamp, format='isot', scale=time_scale, precision=3) + start_offset
-        header[keyword] = shifted.isot
-
-    sequence_epoch = header.get('DATE-BEG') or header.get('DATE-OBS')
-    if header.get('DATE-END') not in (None, '', 'N/A') and sequence_epoch is not None:
-        observation_start = Time(
-            sequence_epoch, format='isot', scale=time_scale, precision=3)
-        header['DATE-END'] = (observation_start + duration_offset).isot
+    time_scale = str(map_header.get('TIMESYS', 'UTC')).strip().lower()
+    observation_start = Time(timestamp, format='isot', scale=time_scale, precision=3).utc
+    header['TIMESYS'] = 'UTC'
+    header['DATE-BEG'] = observation_start.isot
+    header['DATE-OBS'] = observation_start.isot
+    header['DATE-END'] = (observation_start + duration_offset).isot
 
     return header
 
@@ -172,10 +167,16 @@ class Simulator:
 
     def __sun_to_detector(self):
         short_radiance_by_member = stack_schedule.build_radiance_by_stack_member(
-            self.stack_schedule.short_members, self.radiance_by_model_index
+            self.stack_schedule.short_members, self.radiance_by_model_index,
+            start_seconds=self.stack_schedule.start_seconds,
+            exposure_time=self.config.exposure_time_short,
+            model_timestep=self.config.model_timestep,
         )
         long_radiance_by_member = stack_schedule.build_radiance_by_stack_member(
-            self.stack_schedule.long_members, self.radiance_by_model_index
+            self.stack_schedule.long_members, self.radiance_by_model_index,
+            start_seconds=self.stack_schedule.start_seconds,
+            exposure_time=self.config.exposure_time_long,
+            model_timestep=self.config.model_timestep,
         )
 
         self.hardware.store_target_wavelengths(short_radiance_by_member)
@@ -450,13 +451,14 @@ class Simulator:
         header.set('NBIN1', value=self.config.num_pixels_to_bin[0])
         header.set('NBIN2', value=self.config.num_pixels_to_bin[1])
         header.set('DET_TEMP', value=self.config.detector_temperature.value)
-        _set_observation_times(
+        _set_observation_times_from_map(
             header,
-            start_seconds=self.current_observation.start_seconds,
+            map_header=old_header,
             duration=self.config.observation_window,
         )
 
-        # values from map are now copied in above, so the following is superfluous
+        # Most values still come from the metadata definition above. Observation
+        # timestamps are deliberately sourced from the simulated radiance maps.
         # header.set('EXPTIME', map.meta['EXPTIME'])
         # header.set('RSUN_REF', map.rsun_meters.value)
         # header.set('IMAGEW', value=map.dimensions[0].value)
