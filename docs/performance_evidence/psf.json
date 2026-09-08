@@ -1,0 +1,98 @@
+{
+  "legacy_commit": "482c35a",
+  "legacy_source_sha256": "1253774ce731b47d04b2e46c5379d084af92bab2e838dcb93e625c4a305357fa",
+  "wavelength_angstrom": 185,
+  "size": [
+    2000,
+    2000
+  ],
+  "orders_start": -4000,
+  "orders_stop_exclusive": 4000,
+  "nonzero_orders": 7999,
+  "legacy_s": 477.7448263330007,
+  "optimized_s": 0.6567674590005481,
+  "speedup": 727.4185402852031,
+  "array_equal": true,
+  "different_pixels": 0,
+  "max_absolute_difference": 0.0,
+  "l1_difference": 0.0,
+  "legacy_sum": 1.0000000000002116,
+  "optimized_sum": 1.0000000000002116,
+  "all_finite": true,
+  "timing_note": "Timing potentially contended with other validation; output comparison is primary.",
+  "encircled_energy": {
+    "1": {
+      "legacy": 0.9301064349264102,
+      "optimized": 0.9301064349264102
+    },
+    "3": {
+      "legacy": 0.9620398121020937,
+      "optimized": 0.9620398121020937
+    },
+    "10": {
+      "legacy": 0.9843551907614785,
+      "optimized": 0.9843551907614785
+    },
+    "30": {
+      "legacy": 0.9953992840874202,
+      "optimized": 0.9953992840874202
+    },
+    "100": {
+      "legacy": 0.9988344209910128,
+      "optimized": 0.9988344209910128
+    },
+    "300": {
+      "legacy": 0.999696824042665,
+      "optimized": 0.999696824042665
+    },
+    "700": {
+      "legacy": 0.9999442990400806,
+      "optimized": 0.9999442990400806
+    },
+    "1000": {
+      "legacy": 0.9999999908934137,
+      "optimized": 0.9999999908934137
+    },
+    "1400": {
+      "legacy": 1.000000000000211,
+      "optimized": 1.000000000000211
+    }
+  },
+  "wing_energy": {
+    "10": {
+      "legacy": 0.01564480923873264,
+      "optimized": 0.01564480923873264
+    },
+    "30": {
+      "legacy": 0.004600715912790969,
+      "optimized": 0.004600715912790969
+    },
+    "100": {
+      "legacy": 0.0011655790091980127,
+      "optimized": 0.0011655790091980127
+    },
+    "300": {
+      "legacy": 0.00030317595754624833,
+      "optimized": 0.00030317595754624833
+    },
+    "700": {
+      "legacy": 5.570096013045561e-05,
+      "optimized": 5.570096013045561e-05
+    },
+    "1000": {
+      "legacy": 9.106797607176733e-09,
+      "optimized": 9.106797607176733e-09
+    }
+  },
+  "convolved_real_scene": {
+    "description": "Normalized temperature-summed real em_map_037 emission-measure scene",
+    "shape": [
+      1024,
+      1024
+    ],
+    "array_equal": true,
+    "different_pixels": 0,
+    "max_absolute_difference": 0.0,
+    "l1_difference": 0.0
+  }
+}

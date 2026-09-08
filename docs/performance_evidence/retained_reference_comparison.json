@@ -1,0 +1,86 @@
+{
+  "missing_keys": [],
+  "extra_keys": [],
+  "stages": {
+    "detector_images": {
+      "maps": 13,
+      "bitwise_equal_maps": 13,
+      "different_pixels": 0,
+      "max_abs_error": 0.0,
+      "max_relative_l2_error": 0.0,
+      "reference_l2_squared": 0.0,
+      "error_l2_squared": 0.0
+    },
+    "detector_images_pure": {
+      "maps": 13,
+      "bitwise_equal_maps": 0,
+      "different_pixels": 37911018,
+      "max_abs_error": 3.343338903505355e-07,
+      "max_relative_l2_error": 4.534761165944918e-13,
+      "reference_l2_squared": 716040665130360.4,
+      "error_l2_squared": 7.009667736783301e-11
+    },
+    "onboard_processed_images": {
+      "maps": 1,
+      "bitwise_equal_maps": 1,
+      "different_pixels": 0,
+      "max_abs_error": 0.0,
+      "max_relative_l2_error": 0.0,
+      "reference_l2_squared": 0.0,
+      "error_l2_squared": 0.0
+    },
+    "radiance_maps": {
+      "maps": 520,
+      "bitwise_equal_maps": 0,
+      "different_pixels": 1552790049,
+      "max_abs_error": 7.450580596923828e-08,
+      "max_relative_l2_error": 1.7033965901736563e-15,
+      "reference_l2_squared": 6.605450234825228e+17,
+      "error_l2_squared": 4.714553789845393e-13
+    }
+  },
+  "metadata_differences": [],
+  "rng_match": {
+    "_Simulator__simulate_detector": true,
+    "_Simulator__complete_metadata": true,
+    "_Simulator__sun_to_detector": true,
+    "_Simulator__sun_emission": true,
+    "_Simulator__simulate_noise": true,
+    "_Simulator__apply_camera_software": true
+  },
+  "final_fits": {
+    "data_equal": true,
+    "baseline_checksum": 1,
+    "optimized_checksum": 1,
+    "baseline_datasum": 1,
+    "optimized_datasum": 1,
+    "header_differences": {
+      "CHECKSUM": [
+        "3RSeARPZ5RPdARPZ",
+        "7SPf9RMZ7RMd7RMZ"
+      ]
+    }
+  },
+  "baseline_timing": {
+    "wall_seconds": 464.54795804199966,
+    "diagnostic_seconds": 5.428727916998469,
+    "compute_seconds": 459.11923079199914,
+    "peak_rss_gib": 28.38067626953125,
+    "source": "/tmp/suncet-validation/baseline",
+    "seed": 20260904,
+    "retained_pure_reference": true,
+    "array_count": 547,
+    "unique_arrays": 219
+  },
+  "optimized_timing": {
+    "wall_seconds": 113.48312391699801,
+    "diagnostic_seconds": 5.196734166001988,
+    "compute_seconds": 108.28639058399858,
+    "peak_rss_gib": 20.13128662109375,
+    "source": "/tmp/suncet-validation/optimized-memory",
+    "seed": 20260904,
+    "retained_pure_reference": true,
+    "array_count": 547,
+    "unique_arrays": 219
+  }
+}

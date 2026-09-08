@@ -1,8 +1,10 @@
 import os
 import copy
 import warnings
+from functools import partial
 from glob import glob
 import numpy as np
+from scipy.fft import fftn, ifftn
 from scipy.integrate import simpson
 from scipy.ndimage import shift, gaussian_filter
 from pandas import read_fwf, read_csv
@@ -22,6 +24,25 @@ def _wrap_to_unsigned(data, bit_depth, dtype=np.uint16):
     threshold = 1 << int(bit_depth)
     nonnegative = np.maximum(np.asanyarray(data), 0)
     return np.remainder(nonnegative, threshold).astype(dtype)
+
+
+def _convolve_psf(data, kernel):
+    """Convolve without retaining the complex FFT workspace in the result."""
+    kwargs = {}
+    # Interpolation also defines behavior for masks and nonnormalizable kernels.
+    # Keep Astropy's original path for those cases rather than changing semantics.
+    if (not np.ma.isMaskedArray(data) and not np.ma.isMaskedArray(kernel)
+            and np.isfinite(data).all() and np.isfinite(kernel).all()
+            and abs(np.sum(kernel, dtype=np.complex128)) >= 1e-8):
+        kwargs = {
+            'nan_treatment': 'fill',
+            'fftn': partial(fftn, workers=2),
+            'ifftn': partial(ifftn, workers=2),
+        }
+    convolved = convolve_fft(data, kernel, boundary='wrap', normalize_kernel=False,
+                             **kwargs)
+    # Astropy returns a cropped real view into a larger complex allocation.
+    return convolved.copy(order='C')
 
 
 class Hardware:
@@ -174,14 +195,14 @@ class Hardware:
         # todo: fix the bad hack to find the correct diffraction pattern
         target_psf = self.mesh_diffraction_psf[int(map.meta['wavelnth']) - 170].data
         target_psf_crop = target_psf[0:-1, 0:-1]
-        convolved_data = convolve_fft(map.data, target_psf_crop, boundary='wrap', normalize_kernel=False)
+        convolved_data = _convolve_psf(map.data, target_psf_crop)
         return sunpy.map.Map(convolved_data, map.meta)
 
     def apply_mirror_scattered_light_psf(self, radiance_maps):
         return self.__apply_function_to_leaves(radiance_maps, self.__convolve_mirror_scatter)
 
     def __convolve_mirror_scatter(self, map):
-        background = convolve_fft(map.data, self.mirror_scatter_psf, boundary='wrap', normalize_kernel=False)
+        background = _convolve_psf(map.data, self.mirror_scatter_psf)
         eta = np.sum(self.mirror_scatter_psf)
         convolved_data = map.data * (1 - eta) + background
         return sunpy.map.Map(convolved_data, map.meta)
@@ -297,22 +318,33 @@ class Hardware:
     def convert_to_electrons(self, radiance_maps, apply_noise=True):
         quantum_yield = self.__compute_quantum_yields()
         quantum_yield_units_hacked = 1 * u.count/u.electron
+        # Integrating basis vectors preserves SciPy's nonuniform-grid and even
+        # sample endpoint policy while avoiding a full image/wavelength cube.
+        wavelength_weights = simpson(
+            np.eye(len(self.wavelengths)), x=self.wavelengths.value, axis=-1)
+        electron_weights = wavelength_weights * quantum_yield.value
 
         for exposure_type in ['short exposure', 'long exposure']:
             for timestep in radiance_maps[exposure_type]:
-                first_map = self.__get_any_map(radiance_maps[exposure_type][timestep])
-                summed_electrons = []
+                wavelength_maps = radiance_maps[exposure_type][timestep]
+                if len(wavelength_maps) != len(self.wavelengths):
+                    raise ValueError('Map count must match the wavelength grid.')
+                first_map = self.__get_any_map(wavelength_maps)
+                integrated_data = np.zeros_like(
+                    first_map.data, dtype=np.result_type(first_map.data.dtype, np.float64))
+                scratch = np.empty_like(integrated_data)
+                for weight, map in zip(electron_weights, wavelength_maps.values()):
+                    if map.data.shape != integrated_data.shape:
+                        raise ValueError('Wavelength maps must have matching shapes.')
+                    # Quantity stacking previously converted every band to the
+                    # first band's unit; retain that conversion as a scalar.
+                    unit_scale = map.unit.to(first_map.unit)
+                    np.multiply(map.data, weight * unit_scale, out=scratch)
+                    np.add(integrated_data, scratch, out=integrated_data)
 
-                for i, map in enumerate(radiance_maps[exposure_type][timestep].values()):
-                    summed_electrons.append(map.data * map.unit * quantum_yield[i] * quantum_yield_units_hacked) # [ct / (Angstrom pix2)] but TODO: Should really be in electrons, not counts. Update once this issue has been resolved https://github.com/sunpy/sunpy/issues/6823
-
-                # Perform numerical integration across wavelengths; Assuming self.wavelengths is in the correct order and units
-                stacked_data = np.stack(summed_electrons, axis=-1)
-                integrated_data = simpson(stacked_data, x=self.wavelengths, axis=-1)  # Warning: there isn't presently (2023-11-29) an integration method that propagates astropy units so we have to do it carefully ourselves
-
-                # Store the integrated data in the same format as the original maps
-                detector_image = np.zeros_like(first_map.data) * first_map.unit * quantum_yield.unit * quantum_yield_units_hacked * self.wavelengths.unit # This is where we're manually accounting for the unit change due to integration over wavelength, by multiplying by the wavelength unit
-                detector_image += integrated_data * detector_image.unit
+                detector_unit = (first_map.unit * quantum_yield.unit
+                                 * quantum_yield_units_hacked.unit * self.wavelengths.unit)
+                detector_image = u.Quantity(integrated_data, detector_unit, copy=False)
 
                 updated_meta = self.__update_map_meta(first_map.meta, detector_image)
                 detector_image = sunpy.map.Map(detector_image, updated_meta)
@@ -585,12 +617,22 @@ class OnboardSoftware:
 
             sorted_indices = sorted(map_indices)
             maps = [onboard_processed_images[exposure_type][index] for index in sorted_indices]
-            stack = np.stack([map_obj.data for map_obj in maps], axis=-1).astype(np.uint32)
+            if not maps:
+                raise ValueError('Expected a non-empty exposure stack.')
+            shape = maps[0].data.shape
+            common_dtype = np.result_type(*[map_obj.data.dtype for map_obj in maps])
+            summed_data = np.zeros(shape, dtype=np.uint32)
+            max_values = np.zeros(shape, dtype=np.uint32)
+            for map_obj in maps:
+                if map_obj.data.shape != shape:
+                    raise ValueError('Exposure images must have matching shapes.')
+                # Match np.stack's promotion before the original uint32 cast.
+                values = map_obj.data.astype(common_dtype, copy=False).astype(np.uint32, copy=False)
+                np.add(summed_data, values, out=summed_data)
+                np.maximum(max_values, values, out=max_values)
 
             # Sum all values first, then subtract the maximum value (that's how flight firmware does it)
-            summed_data = np.sum(stack, axis=-1, dtype=np.uint32)
-            max_values = np.max(stack, axis=-1)
-            summed_data = summed_data - max_values
+            np.subtract(summed_data, max_values, out=summed_data)
 
             new_map = sunpy.map.Map(summed_data, maps[0].meta)
             onboard_processed_images[exposure_type] = new_map

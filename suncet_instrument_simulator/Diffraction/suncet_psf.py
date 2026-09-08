@@ -242,15 +242,39 @@ def _psf(meshinfo, angles, diffraction_orders, output_size, focal_plane=False, u
     mesh_ratio = (meshinfo["mesh_pitch"] / meshinfo["mesh_width"]).decompose().value
     spacing_x = spacing * np.cos(angles)
     spacing_y = spacing * np.sin(angles)
+    # Beyond this support every omitted Gaussian term already rounds to zero
+    # in float64 (exp(-800) == 0), including subnormal tails. The extra pixel
+    # guards the support bounds against floating-point rounding. Keep the dense
+    # GPU path and unusual widths unchanged.
+    local_support = (not (HAS_CUPY and use_gpu)
+                     and np.isfinite(width_x) and width_x > 0
+                     and np.isfinite(width_y) and width_y > 0)
+    if local_support:
+        radius_x = np.sqrt(800.0 / width_x) + 1
+        radius_y = np.sqrt(800.0 / width_y) + 1
     for order in diffraction_orders:
         if order == 0:
             continue
         intensity = np.sinc(order / mesh_ratio) ** 2  # I_0
         for dx, dy in zip(spacing_x.value, spacing_y.value):
-            x_centered = x - (0.5 * Nx + dx * order + 0.5)
-            y_centered = y - (0.5 * Ny + dy * order + 0.5)
-            # NOTE: this step is the bottleneck and is VERY slow on a CPU
-            psf += np.exp(-width_x * x_centered * x_centered - width_y * y_centered * y_centered) * intensity
+            center_x = 0.5 * Nx + dx * order + 0.5
+            center_y = 0.5 * Ny + dy * order + 0.5
+            if (local_support and np.isfinite(intensity)
+                    and np.isfinite(center_x) and np.isfinite(center_y)):
+                x_slice = slice(np.searchsorted(x[0], center_x - radius_x),
+                                np.searchsorted(x[0], center_x + radius_x, side='right'))
+                y_slice = slice(np.searchsorted(y[:, 0], center_y - radius_y),
+                                np.searchsorted(y[:, 0], center_y + radius_y, side='right'))
+                if x_slice.start == x_slice.stop or y_slice.start == y_slice.stop:
+                    continue
+                region = (y_slice, x_slice)
+            else:
+                region = (slice(None), slice(None))
+            # Retain the original coordinate arithmetic and accumulation order
+            # so the supported pixels and normalization are unchanged.
+            x_centered = x[region] - center_x
+            y_centered = y[region] - center_y
+            psf[region] += np.exp(-width_x * x_centered * x_centered - width_y * y_centered * y_centered) * intensity
     # Contribution from core
     psf_core = np.exp(-width_x * (x - 0.5 * Nx - 0.5) ** 2 - width_y * (y - 0.5 * Ny - 0.5) ** 2)
     psf_total = (1 - area_not_mesh) * psf / psf.sum() + area_not_mesh * psf_core / psf_core.sum()

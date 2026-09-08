@@ -1,0 +1,23 @@
+{
+  "implementation": "np.dot with nonfinite matmul fallback; nativefloat32 cast and original bin slices",
+  "shape": [
+    40,
+    1024,
+    1024
+  ],
+  "legacy_s": 5.477320416001021,
+  "optimized_s": 0.7305504590003693,
+  "speedup": 7.497525117561048,
+  "array_equal": true,
+  "different_pixels": 0,
+  "max_absolute_difference": 0.0,
+  "all_finite": true,
+  "candidate_over_invalid_divide_set_to_raise": true,
+  "legacy_warning_count": 3,
+  "legacy_warning_messages": [
+    "divide by zero encountered in matmul",
+    "invalid value encountered in matmul",
+    "overflow encountered in matmul"
+  ],
+  "timing_note": "Potentially contended; original evaluated in64-row strips to bound memory."
+}

@@ -84,3 +84,34 @@ Note: the below is very notional as of 2022-06-13.
 * `synthetic_data_*.png`: For each step in time, an image is rendered and saved to disk for quick reference. The image scaling, filtering, and color table are defined by `config.ini`. 
 * `snr_*.png`: For each step in time, a set of SNR contours (at levels defined by `config.ini`) are output for quick reference. 
 * `synthetic_data.mov`: The individual images rendered into a movie. 
+
+## Performance and diagnostic output
+
+Repeated integrations of the same model scene reuse deterministic optical and
+expected-photon arrays. Each integration retains its own timestamp and metadata;
+photon/Fano noise and jitter still follow the original random draw order. The
+shared expected-photon arrays are read-only. PSF convolution keeps the existing
+kernel shapes and wrap boundary, using two SciPy FFT workers for finite inputs
+and the original Astropy path for exceptional inputs.
+
+Ordinary runs omit the unused noise-free diagnostic. To retain it for analysis:
+
+```python
+simulator.run(retain_pure_reference=True)
+```
+
+SNR calculation remains disabled in `run()`. The existing SNR scaling/window
+conventions and detector binning were not changed by the performance work.
+
+Movie generation streams rendered frames directly to the encoder. Set
+`save_png_frames = True` in `make_movie.py`, or pass `png_directory` to its
+`make_movie()` function, when individual PNG files are also wanted.
+
+Radiance batching preserves the native float32 cast before the existing spectral
+binning. The production float64 emissivity table matched the original exactly in
+validation; single-precision emissivity can introduce last-bit rounding
+variation. CPU PSF generation skips only Gaussian terms beyond float64 underflow,
+retaining representable tails. The existing GPU path is unchanged.
+
+See [the performance validation record](docs/performance_validation.md) for
+measured runtime, memory, numerical comparisons, and validation limits.

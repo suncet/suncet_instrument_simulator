@@ -2,7 +2,6 @@
 This is the main wrapper for most/all(?) of the other instrument simulator related python files
 """
 import os
-import tempfile
 from glob import glob
 import astropy.units as u
 from astropy.io import fits
@@ -12,6 +11,7 @@ import pandas as pd
 import ast
 import numpy as np
 from suncet_instrument_simulator import config_parser, make_radiance_maps, instrument, stack_schedule
+from suncet_instrument_simulator.image_statistics import local_rms
 
 
 def _set_observation_times_from_map(header, map_header, duration):
@@ -48,7 +48,9 @@ class Simulator:
         return config_parser.Config(config_filename)
 
 
-    def run(self, observation_indices=None):
+    def run(self, observation_indices=None, *, retain_pure_reference=False):
+        """Simulate observations, optionally retaining the noise-free diagnostic."""
+        self.retain_pure_reference = retain_pure_reference
         self.hardware = instrument.Hardware(self.config)
         self.onboard_software = instrument.OnboardSoftware(self.config)
 
@@ -166,46 +168,71 @@ class Simulator:
 
 
     def __sun_to_detector(self):
-        short_radiance_by_member = stack_schedule.build_radiance_by_stack_member(
-            self.stack_schedule.short_members, self.radiance_by_model_index,
-            start_seconds=self.stack_schedule.start_seconds,
-            exposure_time=self.config.exposure_time_short,
-            model_timestep=self.config.model_timestep,
-        )
-        long_radiance_by_member = stack_schedule.build_radiance_by_stack_member(
-            self.stack_schedule.long_members, self.radiance_by_model_index,
-            start_seconds=self.stack_schedule.start_seconds,
-            exposure_time=self.config.exposure_time_long,
-            model_timestep=self.config.model_timestep,
-        )
+        # Cache only deterministic optical data within this observation. Noise
+        # still runs for every integration, in the original order. Processing
+        # one distinct member at a time also bounds intermediate FFT storage.
+        optical_cache = {}
+        exposed_cache = {}
+        self.radiance_maps = {}
+        for exposure, members, exposure_time in (
+            ('short exposure', self.stack_schedule.short_members, self.config.exposure_time_short),
+            ('long exposure', self.stack_schedule.long_members, self.config.exposure_time_long),
+        ):
+            radiance_by_member = {}
+            for member_index, contributions in enumerate(members):
+                key = stack_schedule.radiance_member_key(contributions)
+                start_seconds = (self.stack_schedule.start_seconds
+                                 + member_index * exposure_time.to_value(u.s))
+                if key not in optical_cache:
+                    member = stack_schedule.combine_radiance_for_member(
+                        contributions, self.radiance_by_model_index,
+                        start_seconds=start_seconds, model_timestep=self.config.model_timestep)
+                    if not optical_cache:
+                        self.hardware.store_target_wavelengths(member)
+                        self.hardware.compute_effective_area()
+                    optical_cache[key] = self.__process_radiance_through_optics({0: member})[0]
 
-        self.hardware.store_target_wavelengths(short_radiance_by_member)
-        self.hardware.compute_effective_area()
+                exposure_key = (key, exposure_time.to_value(u.s))
+                if exposure_key not in exposed_cache:
+                    independent_metadata = {
+                        wavelength: sunpy.map.Map(image.data, image.meta.copy())
+                        for wavelength, image in optical_cache[key].items()
+                    }
+                    exposed = self.hardware.apply_exposure_times_for_stack(
+                        {0: independent_metadata}, exposure_time)[0]
+                    # Expected photon counts are deterministic too. Sharing
+                    # their immutable arrays avoids retaining nine copies of
+                    # the short scene while drawing independent Poisson noise.
+                    for image in exposed.values():
+                        image.data.setflags(write=False)
+                    exposed_cache[exposure_key] = exposed
 
-        short_radiance_by_member = self.__process_radiance_through_optics(short_radiance_by_member)
-        long_radiance_by_member = self.__process_radiance_through_optics(long_radiance_by_member)
+                # Preserve the cached crop/resample WCS, but give each exposure
+                # its own timestamp and metadata: later stages mutate metadata.
+                reference_index = key[0][0]
+                copied_member = {}
+                for wavelength, cached_map in exposed_cache[exposure_key].items():
+                    metadata = cached_map.meta.copy()
+                    reference = self.radiance_by_model_index[reference_index][wavelength]
+                    metadata.update(stack_schedule.integration_time_metadata(
+                        reference, reference_index, start_seconds, self.config.model_timestep))
+                    copied_member[wavelength] = sunpy.map.Map(cached_map.data, metadata)
+                radiance_by_member[member_index] = copied_member
+            self.radiance_maps[exposure] = radiance_by_member
 
-        short_exposed = self.hardware.apply_exposure_times_for_stack(
-            short_radiance_by_member, self.config.exposure_time_short
-        )
-        long_exposed = self.hardware.apply_exposure_times_for_stack(
-            long_radiance_by_member, self.config.exposure_time_long
-        )
-
-        self.radiance_maps = {
-            'short exposure': short_exposed,
-            'long exposure': long_exposed,
-        }
-        self.radiance_maps_pure = {
-            'short exposure': {key: value for key, value in short_exposed.items()},
-            'long exposure': {key: value for key, value in long_exposed.items()},
-        }
+        self.radiance_maps_pure = None
+        self.detector_images_pure = None
+        if getattr(self, 'retain_pure_reference', False):
+            self.radiance_maps_pure = {
+                exposure: dict(members) for exposure, members in self.radiance_maps.items()
+            }
 
 
     def __simulate_noise(self):
         self.radiance_maps = self.hardware.apply_photon_shot_noise(self.radiance_maps)
         self.detector_images = self.hardware.convert_to_electrons(self.radiance_maps, apply_noise=True)
-        self.detector_images_pure = self.hardware.convert_to_electrons(self.radiance_maps_pure, apply_noise=False)
+        if self.radiance_maps_pure is not None:
+            self.detector_images_pure = self.hardware.convert_to_electrons(self.radiance_maps_pure, apply_noise=False)
         self.hardware.make_dark_frame()
         self.hardware.make_read_frame()
         self.hardware.make_spike_masks(self.detector_images)
@@ -241,11 +268,8 @@ class Simulator:
 
 
     def __calculate_snr(self):
-        def calculate_rms(values):
-            squared = [value ** 2 for value in values]
-            mean = np.mean(squared)
-            rms = np.sqrt(mean)
-            return rms
+        if self.detector_images_pure is None:
+            raise ValueError('SNR requires run(retain_pure_reference=True).')
         
         # generate no-noise image with compatible parameters to compare to simulated image
         composite_images_pure = self.hardware.convert_to_dn(self.detector_images_pure)
@@ -261,27 +285,7 @@ class Simulator:
         # generate pure noise image
         noise_image = self.onboard_processed_images.data - composite_image_pure_binned.data
 
-        # get array size
-        xsize = int(composite_image_pure_binned.dimensions.x.value)
-        ysize = int(composite_image_pure_binned.dimensions.y.value)
-
-        # array to receive local stddev of noise array
-        local_std = np.zeros((ysize, xsize))
-        # below is experimental, not used
-        # local_rms_mean = np.zeros((ysize, xsize))
-
-        window_min = int(np.floor(self.config.SNR_window.value/2))
-        window_max = int(np.ceil(self.config.SNR_window.value/2))
-
-        for x in range(0, xsize ):
-            for y in range(0, ysize):
-                noise_window = noise_image[max(0, y - window_min): min(ysize, y + window_max + 1),
-                                           max(0, x - window_min): min(xsize, x + window_max + 1)]
-                window_elements = sum(len(x) for x in noise_window)
-                #local_std[y, x] = np.std(noise_window)
-                local_std[y, x] = calculate_rms(noise_window)
-                # experimental not used
-                # local_rms_mean[y, x] = np.sum(noise_window**2.0)/window_elements
+        local_std = local_rms(noise_image, self.config.SNR_window.value)
 
         # deal with 0 noise pixels that would blow up the SNR
         zero_noise_indices = np.where(local_std == 0)
@@ -488,17 +492,9 @@ class Simulator:
     
 
     def __convert_sunpy_meta_to_fits_header(self, map):
-        # This is a really stupid way to get this done, but all the more elegant ways tried to date (2023-12-07) have not worked
-        file_descriptor, temporary_filename = tempfile.mkstemp(suffix='.fits')
-        os.close(file_descriptor)
-        os.remove(temporary_filename)
-        try:
-            map.save(temporary_filename)
-            with fits.open(temporary_filename) as hdul:
-                return hdul[0].header.copy()
-        finally:
-            if os.path.exists(temporary_filename):
-                os.remove(temporary_filename)
+        # PrimaryHDU supplies structural and unsigned-data scaling keywords,
+        # just as Map.save does, without writing the image merely for its header.
+        return fits.PrimaryHDU(map.data, header=map.fits_header).header.copy()
 
 
     def __output_files(self):

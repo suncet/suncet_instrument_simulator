@@ -1,0 +1,30 @@
+{
+  "suncet_instrument_simulator/simulator.py": {
+    "sha256": "5d536b98882e39954603bb64631773c7ccb5068303cdbd8a566bec0a259c435f",
+    "matches_validated_snapshot": true
+  },
+  "suncet_instrument_simulator/stack_schedule.py": {
+    "sha256": "13688badaba65f91ef5b1b501a4cf43a168b7ef20992b2f64705b5fc1fa45d04",
+    "matches_validated_snapshot": true
+  },
+  "suncet_instrument_simulator/instrument.py": {
+    "sha256": "3470ec878de16b881a4f6590eecc119b66461947ad08c755196aeff8fe521f47",
+    "matches_validated_snapshot": true
+  },
+  "suncet_instrument_simulator/make_radiance_maps.py": {
+    "sha256": "77ed84b0193e9d51847c13d47ae4153c5e584e4df283a304c427bdfaaa8f677b",
+    "matches_validated_snapshot": true
+  },
+  "suncet_instrument_simulator/Diffraction/suncet_psf.py": {
+    "sha256": "987810391f8bb648627adee1b3e0dc18672cd808dc7bd69ad848bf3464edf1e0",
+    "matches_validated_snapshot": true
+  },
+  "suncet_instrument_simulator/make_movie.py": {
+    "sha256": "dfd81e8a2dbb7eee64d51c1c7da1b1b46878c1cb62dbd9935c7da6fe84ed4966",
+    "matches_validated_snapshot": true
+  },
+  "suncet_instrument_simulator/image_statistics.py": {
+    "sha256": "7d9aa31e55d8a1f929cf1d4c4777a86e0c6bfa98754a3c3c5aa28d19c521eb8b",
+    "matches_validated_snapshot": true
+  }
+}

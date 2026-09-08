@@ -15,6 +15,7 @@ from astropy.time import Time
 
 LEGACY_MODEL_NAMES = ('bright_fast', 'dimmest', 'bright_slow')
 THREE_VIEWPOINT_MODEL_NAME = 'three_viewpoint_2000_kmps'
+_RADIANCE_PIXEL_CHUNK_SIZE = 4096
 
 
 def model_sequence_properties(model_directory_name):
@@ -122,22 +123,34 @@ class MakeRadianceMaps:
         native_wave_dims = np.shape(self.native_wave_axis)[0]
         suncet_emissivity = self.emiss.total.sel(logte=self.logt_axis, wave=self.native_wave_axis, method='nearest')
 
-        # generate the array to receive full radiance cube
-        emiss_wave_array_full = np.empty([native_wave_dims, em_map_dim[1], em_map_dim[2]], dtype=np.float32)
-
-        # compute radiance from emissivity
-        for x in range(em_map_dim[1]):
-            for y in range(em_map_dim[2]):
-                emiss_wave_array_full[:, x, y] = np.matmul(self.em_map[:, x, y], suncet_emissivity.values)
-
         # how much are we binning in spectral space?
         bin_ratio = round(self.binsize/self.native_binsize, 1)
+        n_bins = int(native_wave_dims/bin_ratio)
+        emiss_wave_array = np.empty([n_bins, em_map_dim[1], em_map_dim[2]], dtype=np.float32)
+        em_pixels = self.em_map.reshape(em_map_dim[0], -1)
+        output_pixels = emiss_wave_array.reshape(n_bins, em_pixels.shape[1])
+        emissivity = suncet_emissivity.values
 
-        # rebin the data with proper accounting (i.e. accounting for the 1/Å in native binsize)
-        emiss_wave_array = np.empty([int(native_wave_dims/bin_ratio), em_map_dim[1], em_map_dim[2]], dtype=np.float32)
-        for n in range(int(native_wave_dims/bin_ratio)):
-            emiss_wave_array[n, :, :] = np.sum(emiss_wave_array_full[int(n * bin_ratio):int(n * bin_ratio + (bin_ratio - 1)), :, :]
-                                               * self.native_binsize, axis=0)
+        # Batch spatial pixels without allocating a full native-wavelength cube.
+        # Keep the native float32 rounding stage before binning: pre-binning the
+        # emissivity instead would change the numerical result. Batched BLAS can
+        # still change the last float32 bits when emissivity itself is float32;
+        # the production emissivity table uses float64.
+        for start in range(0, em_pixels.shape[1], _RADIANCE_PIXEL_CHUNK_SIZE):
+            stop = start + _RADIANCE_PIXEL_CHUNK_SIZE
+            # For these 2D arrays dot performs the same matrix product without
+            # matmul's spurious BLAS floating-point status warnings on macOS.
+            # Retain matmul's diagnostics when the result actually is nonfinite.
+            native_radiance = np.dot(emissivity.T, em_pixels[:, start:stop])
+            if not np.all(np.isfinite(native_radiance)):
+                native_radiance = emissivity.T @ em_pixels[:, start:stop]
+            native_radiance = native_radiance.astype(np.float32)
+            for n in range(n_bins):
+                # Preserve the existing half-open spectral slices, including
+                # their upper endpoint, separately from this performance change.
+                native_slice = slice(int(n * bin_ratio), int(n * bin_ratio + (bin_ratio - 1)))
+                output_pixels[n, start:stop] = np.sum(
+                    native_radiance[native_slice] * self.native_binsize, axis=0)
         return emiss_wave_array
 
 

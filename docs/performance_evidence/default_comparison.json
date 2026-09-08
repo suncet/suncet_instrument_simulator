@@ -1,0 +1,91 @@
+{
+  "missing_keys": [
+    "detector_images_pure/long exposure/0",
+    "detector_images_pure/long exposure/1",
+    "detector_images_pure/long exposure/2",
+    "detector_images_pure/long exposure/3",
+    "detector_images_pure/short exposure/0",
+    "detector_images_pure/short exposure/1",
+    "detector_images_pure/short exposure/2",
+    "detector_images_pure/short exposure/3",
+    "detector_images_pure/short exposure/4",
+    "detector_images_pure/short exposure/5",
+    "detector_images_pure/short exposure/6",
+    "detector_images_pure/short exposure/7",
+    "detector_images_pure/short exposure/8"
+  ],
+  "extra_keys": [],
+  "stages": {
+    "detector_images": {
+      "maps": 13,
+      "bitwise_equal_maps": 13,
+      "different_pixels": 0,
+      "max_abs_error": 0.0,
+      "max_relative_l2_error": 0.0,
+      "reference_l2_squared": 0.0,
+      "error_l2_squared": 0.0
+    },
+    "onboard_processed_images": {
+      "maps": 1,
+      "bitwise_equal_maps": 1,
+      "different_pixels": 0,
+      "max_abs_error": 0.0,
+      "max_relative_l2_error": 0.0,
+      "reference_l2_squared": 0.0,
+      "error_l2_squared": 0.0
+    },
+    "radiance_maps": {
+      "maps": 520,
+      "bitwise_equal_maps": 0,
+      "different_pixels": 1552790049,
+      "max_abs_error": 7.450580596923828e-08,
+      "max_relative_l2_error": 1.7033965901736563e-15,
+      "reference_l2_squared": 6.605450234825228e+17,
+      "error_l2_squared": 4.714553789845393e-13
+    }
+  },
+  "metadata_differences": [],
+  "rng_match": {
+    "_Simulator__sun_to_detector": true,
+    "_Simulator__simulate_detector": true,
+    "_Simulator__complete_metadata": true,
+    "_Simulator__simulate_noise": true,
+    "_Simulator__apply_camera_software": true,
+    "_Simulator__sun_emission": true
+  },
+  "final_fits": {
+    "data_equal": true,
+    "baseline_checksum": 1,
+    "optimized_checksum": 1,
+    "baseline_datasum": 1,
+    "optimized_datasum": 1,
+    "header_differences": {
+      "CHECKSUM": [
+        "3RSeARPZ5RPdARPZ",
+        "8UOiASOZ2SOf8SOZ"
+      ]
+    }
+  },
+  "baseline_timing": {
+    "wall_seconds": 464.54795804199966,
+    "diagnostic_seconds": 5.428727916998469,
+    "compute_seconds": 459.11923079199914,
+    "peak_rss_gib": 28.38067626953125,
+    "source": "/tmp/suncet-validation/baseline",
+    "seed": 20260904,
+    "retained_pure_reference": true,
+    "array_count": 547,
+    "unique_arrays": 219
+  },
+  "optimized_timing": {
+    "wall_seconds": 100.80248833400037,
+    "diagnostic_seconds": 4.449298166004155,
+    "compute_seconds": 96.3531907929937,
+    "peak_rss_gib": 19.8675537109375,
+    "source": "/tmp/suncet-validation/final-source",
+    "seed": 20260904,
+    "retained_pure_reference": false,
+    "array_count": 534,
+    "unique_arrays": 214
+  }
+}

@@ -4,7 +4,7 @@ import numpy as np
 from astropy.io import fits
 import os
 from glob import glob
-import imageio
+import imageio.v2 as imageio
 import datetime
 
 def apply_radial_filter(data, sigma):
@@ -41,32 +41,63 @@ def replace_negative_values(data):
     return data
 
 
-def plot_difference_image(data,data_prior, output_filename):
+def _render_frame(data, *, vmin, vmax, cmap, output_filename=None):
+    """Render the same borderless RGBA pixels used by the PNG movie workflow."""
     height, width = data.shape[:2]
-    
-    # Matplotlib for some reason makes saving an image to disk with the exact right dimensions and no white space non-trivial, hence all this elaborate setup
     fig = plt.figure(frameon=False)
     fig.set_size_inches(width / fig.dpi, height / fig.dpi)
+    canvas = FigureCanvas(fig)
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
+    # Match savefig(transparent=True), including masked/nonfinite image pixels.
+    ax.patch.set_facecolor('none')
+    ax.patch.set_edgecolor('none')
     fig.add_axes(ax)
+    try:
+        ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap, aspect='auto')
+        canvas.draw()
+        frame = np.asarray(canvas.buffer_rgba()).copy()
+        if output_filename is not None:
+            imageio.imwrite(output_filename, frame)
+        return frame
+    finally:
+        plt.close(fig)
 
-    diff = data - data_prior
-    ax.imshow(diff, vmin=-10000, vmax=10000, cmap='gray', aspect='auto')
-    plt.savefig(output_filename, dpi=fig.dpi, transparent=True)
-    plt.close()
+
+def plot_difference_image(data, data_prior, output_filename=None):
+    return _render_frame(
+        data - data_prior, vmin=-10000, vmax=10000, cmap='gray',
+        output_filename=output_filename,
+    )
 
 
-def plot_scaled_image(data, output_filename, scale=None):
-    height, width = data.shape[:2]
-    
-    # Matplotlib for some reason makes saving an image to disk with the exact right dimensions and no white space non-trivial, hence all this elaborate setup
-    fig = plt.figure(frameon=False)
-    fig.set_size_inches(width / fig.dpi, height / fig.dpi)
-    ax = plt.Axes(fig, [0., 0., 1., 1.])
-    ax.set_axis_off()
-    fig.add_axes(ax)
-    
+def _asinh_limits(images):
+    """Match CME tracker movie.py: median sampled percentiles, 3% softening."""
+    lows, highs = [], []
+    for data in images:
+        finite = np.asarray(data, dtype=np.float64)
+        finite = finite[np.isfinite(finite)]
+        if finite.size:
+            low, high = np.percentile(finite, [1.0, 99.7])
+            lows.append(float(low))
+            highs.append(float(high))
+    if not lows:
+        raise ValueError('Movie input contains no finite image pixels.')
+    low, high = float(np.median(lows)), float(np.median(highs))
+    if not high > low:
+        high = low + max(abs(low), 1.0) * np.finfo(np.float64).eps
+    width = max((high - low) * .03, np.finfo(np.float64).eps)
+    return low, high, width
+
+
+def plot_scaled_image(data, output_filename=None, scale=None, asinh_limits=None):
+    if scale == 'asinh':
+        low, high, width = asinh_limits or _asinh_limits([data])
+        return _render_frame(
+            np.arcsinh((np.asarray(data, dtype=np.float64) - low) / width),
+            vmin=0, vmax=float(np.arcsinh((high - low) / width)),
+            cmap='inferno', output_filename=output_filename,
+        )
     scale_funcs = {
         'log': lambda x: np.log10(np.clip(x, a_min=0.1, a_max=None)),
         'sqrt': np.sqrt,
@@ -76,54 +107,75 @@ def plot_scaled_image(data, output_filename, scale=None):
     }
     scale_func = scale_funcs.get(scale, lambda x: x)  # Default to no scaling if not found
 
-    ax.imshow(scale_func(data), vmin=0.08, vmax=21.0, cmap='inferno', aspect='auto')
-    plt.savefig(output_filename, dpi=fig.dpi, transparent=True)
-    plt.close()
+    return _render_frame(
+        scale_func(data), vmin=0.08, vmax=21.0, cmap='inferno',
+        output_filename=output_filename,
+    )
 
 
 # Configure script here
-path = os.getenv('suncet_data') + '/synthetic/level0/fits/'
 filenames = 'config_default_OBS_*.fits'
 do_difference = False
+scale = '1/4'  # Also supports 'asinh', matching the CME tracker display stretch.
+# Enable only when individual PNGs are also wanted; movies stream from memory.
+save_png_frames = False
 
 
-fits_files = sorted(glob(path + filenames))
-image_files = []
+def make_movie(fits_files, movie_filename, *, do_difference=False, png_directory=None, scale='1/4'):
+    """Stream FITS images into a movie, optionally retaining individual PNGs."""
+    fits_files = list(fits_files)
+    asinh_limits = None
+    if scale == 'asinh' and not do_difference:
+        indices = np.unique(np.linspace(0, len(fits_files) - 1, min(12, len(fits_files))).round().astype(int))
 
-for i, file in enumerate(fits_files):
-    with fits.open(file) as hdul:
-        data = hdul[0].data
-        data = replace_negative_values(data)
+        def sample_images():
+            for index in indices:
+                with fits.open(fits_files[index]) as hdul:
+                    yield apply_radial_filter(replace_negative_values(hdul[0].data), 300)
 
-        if ~do_difference:
-            data = apply_radial_filter(data, 300)
-    
-    if do_difference: 
-        if i > 0: 
-            with fits.open(fits_files[i-1]) as hdul: 
-                data_prior = hdul[0].data
-                data_prior = replace_negative_values(data_prior)
-        
-    output_filename = os.getenv('suncet_data')+ '/synthetic/images and movies/' + f"{file.split('.')[1]}"
-    if do_difference: 
-        if i > 0: 
-            output_filename += f"_difference.png"
-            plot_difference_image(data, data_prior, output_filename)
-            image_files.append(output_filename)
-    else: 
-        output_filename += f".png"
-        plot_scaled_image(data, output_filename, scale='1/4')
-        image_files.append(output_filename)
-    
-    
+        asinh_limits = _asinh_limits(sample_images())
+    data_prior = None
+    with imageio.get_writer(movie_filename, fps=20) as writer:
+        for file in fits_files:
+            with fits.open(file) as hdul:
+                unfiltered_data = replace_negative_values(hdul[0].data)
+                data = unfiltered_data
+                # Preserve the historical Boolean/difference behavior. Correcting
+                # this expression changes image values and is a separate change.
+                if ~do_difference:
+                    data = apply_radial_filter(data, 300)
 
-movie_filename = os.getenv('suncet_data')+ '/synthetic/images and movies/synthetic_suncet_movie_' + datetime.datetime.now().strftime('%Y-%m-%d')
-if do_difference: 
-    movie_filename += f"_difference.mp4"
-else: 
-    movie_filename += f".mp4"
+            output_filename = None
+            if png_directory is not None:
+                # Keep the existing PNG naming convention.
+                basename = str(file).split('.')[1]
+                suffix = '_difference.png' if do_difference else '.png'
+                output_filename = os.path.join(png_directory, basename + suffix)
 
-with imageio.get_writer(movie_filename, fps=20) as writer:
-    for filename in image_files:
-        image = imageio.imread(filename)
-        writer.append_data(image)
+            if do_difference:
+                if data_prior is not None:
+                    frame = plot_difference_image(data, data_prior, output_filename)
+                    writer.append_data(frame)
+                # The previous frame was historically reread without its radial
+                # filter. Retain that same array instead of reading it a second time.
+                data_prior = unfiltered_data
+            else:
+                frame = plot_scaled_image(data, output_filename, scale=scale, asinh_limits=asinh_limits)
+                writer.append_data(frame)
+
+
+def main():
+    data_root = os.getenv('suncet_data')
+    path = data_root + '/synthetic/level0/fits/'
+    output_directory = data_root + '/synthetic/images and movies/'
+    movie_filename = output_directory + 'synthetic_suncet_movie_' + datetime.datetime.now().strftime('%Y-%m-%d')
+    movie_filename += '_difference.mp4' if do_difference else '.mp4'
+    make_movie(
+        sorted(glob(path + filenames)), movie_filename,
+        do_difference=do_difference, scale=scale,
+        png_directory=output_directory if save_png_frames else None,
+    )
+
+
+if __name__ == '__main__':
+    main()

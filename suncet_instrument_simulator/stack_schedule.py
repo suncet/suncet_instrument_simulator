@@ -199,19 +199,30 @@ def combine_radiance_for_member(contributions, radiance_by_model_index, *,
     # Add only the integration's offset from that frame. This also timestamps
     # integrations between model frames and integrations padded with the final
     # frame correctly, without advancing the model epoch a second time.
-    timestamp = reference.meta.get('DATE-OBS')
-    if timestamp in (None, '', 'N/A'):
-      raise ValueError('Radiance map does not contain a valid DATE-OBS.')
-    time_scale = str(reference.meta.get('TIMESYS', 'UTC')).strip().lower()
-    reference_time = Time(timestamp, format='isot', scale=time_scale, precision=6).utc
-    offset_seconds = start_seconds - reference_index * _to_seconds(model_timestep)
-    integration_start = reference_time + TimeDelta(offset_seconds, format='sec')
     metadata = reference.meta.copy()
-    metadata['DATE-OBS'] = integration_start.isot
-    metadata['TIMESYS'] = 'UTC'
+    metadata.update(integration_time_metadata(
+      reference, reference_index, start_seconds, model_timestep))
     combined_by_wavelength[wavelength] = sunpy.map.Map(combined_data, metadata)
 
   return combined_by_wavelength
+
+
+def radiance_member_key(contributions):
+  """Identify exactly repeated scene arithmetic, without rounding weights."""
+  return tuple((item.model_index, item.weight)
+               for item in _normalize_contributions(contributions))
+
+
+def integration_time_metadata(reference, reference_index, start_seconds, model_timestep):
+  """Return the integration timestamp while leaving spatial metadata alone."""
+  timestamp = reference.meta.get('DATE-OBS')
+  if timestamp in (None, '', 'N/A'):
+    raise ValueError('Radiance map does not contain a valid DATE-OBS.')
+  time_scale = str(reference.meta.get('TIMESYS', 'UTC')).strip().lower()
+  reference_time = Time(timestamp, format='isot', scale=time_scale, precision=6).utc
+  offset_seconds = start_seconds - reference_index * _to_seconds(model_timestep)
+  integration_start = reference_time + TimeDelta(offset_seconds, format='sec')
+  return {'DATE-OBS': integration_start.isot, 'TIMESYS': 'UTC'}
 
 
 def build_radiance_by_stack_member(stack_members, radiance_by_model_index, *,
