@@ -62,11 +62,12 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     page.on('pageerror',error=>errors.push(error.message));
     await page.goto(pathToFileURL(path.join(localRoot,'index.html')).href);
     await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Local preview'));
-    assert.equal(await page.locator('.option').count(),36);
+    assert.equal(await page.locator('.option').count(),40);
     assert.equal(await page.locator('#subtitle').count(),0);
     assert.equal(await page.locator('#order option[value="newest"]').count(),0);
     assert.equal(manifest.options.some(item=>[24,29].includes(item.id)),false);
     assert.equal(manifest.options.find(item=>item.slug==='tequila-sunrise').id,38);
+    assert.deepEqual(manifest.options.filter(item=>item.slug.startsWith('euvi')).map(item=>item.source),['euvi171','euvi195','euvi284','euvi304']);
     assert.equal(manifest.options.filter(item=>item.family==='SunCET branding').every(item=>item.title.startsWith('SunCET branding /')),true);
     await page.getByRole('button',{name:'Favorite Poster / Blue to rose',exact:true}).click();
     await page.reload();
@@ -102,7 +103,7 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     const download=await downloadPromise;
     const csv=await readFile(await download.path(),'utf8');
     assert.match(csv,/"33","Poster \/ Blue to rose","SunCET NASA Poster","2"/);
-    assert.equal(csv.trim().split('\r\n').length,37);
+    assert.equal(csv.trim().split('\r\n').length,41);
     if(screenshotDir){await mkdir(screenshotDir,{recursive:true});await page.screenshot({path:path.join(screenshotDir,'results-desktop.png')});}
     await page.getByRole('tab',{name:'Gallery',exact:true}).click();
     await page.getByRole('button',{name:'Favorite Poster / Blue to rose',exact:true}).click();

@@ -979,6 +979,82 @@
       },
       "ramp": "ramps/38-tequila-sunrise.png",
       "lut": "luts/38-tequila-sunrise.csv"
+    },
+    {
+      "id": 39,
+      "slug": "euvi171",
+      "title": "STEREO / EUVI 171",
+      "family": "existing EUV imager tables",
+      "description": "Standard SunPy STEREO/EUVI 171 angstrom color table.",
+      "source": "euvi171",
+      "anchors": null,
+      "images": {
+        "current": "current/39-euvi171.png",
+        "asinh": "asinh/39-euvi171.png"
+      },
+      "thumbnails": {
+        "current": "thumbs/current/39-euvi171.webp",
+        "asinh": "thumbs/asinh/39-euvi171.webp"
+      },
+      "ramp": "ramps/39-euvi171.png",
+      "lut": "luts/39-euvi171.csv"
+    },
+    {
+      "id": 40,
+      "slug": "euvi195",
+      "title": "STEREO / EUVI 195",
+      "family": "existing EUV imager tables",
+      "description": "Standard SunPy STEREO/EUVI 195 angstrom color table.",
+      "source": "euvi195",
+      "anchors": null,
+      "images": {
+        "current": "current/40-euvi195.png",
+        "asinh": "asinh/40-euvi195.png"
+      },
+      "thumbnails": {
+        "current": "thumbs/current/40-euvi195.webp",
+        "asinh": "thumbs/asinh/40-euvi195.webp"
+      },
+      "ramp": "ramps/40-euvi195.png",
+      "lut": "luts/40-euvi195.csv"
+    },
+    {
+      "id": 41,
+      "slug": "euvi284",
+      "title": "STEREO / EUVI 284",
+      "family": "existing EUV imager tables",
+      "description": "Standard SunPy STEREO/EUVI 284 angstrom color table.",
+      "source": "euvi284",
+      "anchors": null,
+      "images": {
+        "current": "current/41-euvi284.png",
+        "asinh": "asinh/41-euvi284.png"
+      },
+      "thumbnails": {
+        "current": "thumbs/current/41-euvi284.webp",
+        "asinh": "thumbs/asinh/41-euvi284.webp"
+      },
+      "ramp": "ramps/41-euvi284.png",
+      "lut": "luts/41-euvi284.csv"
+    },
+    {
+      "id": 42,
+      "slug": "euvi304",
+      "title": "STEREO / EUVI 304",
+      "family": "existing EUV imager tables",
+      "description": "Standard SunPy STEREO/EUVI 304 angstrom color table.",
+      "source": "euvi304",
+      "anchors": null,
+      "images": {
+        "current": "current/42-euvi304.png",
+        "asinh": "asinh/42-euvi304.png"
+      },
+      "thumbnails": {
+        "current": "thumbs/current/42-euvi304.webp",
+        "asinh": "thumbs/asinh/42-euvi304.webp"
+      },
+      "ramp": "ramps/42-euvi304.png",
+      "lut": "luts/42-euvi304.csv"
     }
   ]
 }

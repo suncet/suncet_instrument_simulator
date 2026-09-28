@@ -1,6 +1,6 @@
 # SunCET color table study
 
-Open index.html locally. There are 36 distinct tables, each rendered at 1000 x 750 pixels with two shared stretches. The gallery starts with the current PNG stretch.
+Open index.html locally. There are 40 distinct tables, each rendered at 1000 x 750 pixels with two shared stretches. The gallery starts with the current PNG stretch.
 
 Input: `config_default_OBS_2023-01-14T17:00:00.000_300.fits`
 

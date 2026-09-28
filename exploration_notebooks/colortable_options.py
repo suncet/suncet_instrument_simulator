@@ -140,6 +140,9 @@ def options():
     add("tequila-sunrise", "Tequila Sunrise", "Sunset",
         "Grenadine red through orange juice gold to a pale citrus highlight, inspired by a Tequila Sunrise drink.",
         colors=["#080103", "#490817", "#a41929", "#e94725", "#fa8b24", "#ffd354", "#fff4bb"])
+    for wavelength in [171, 195, 284, 304]:
+        add(f"euvi{wavelength}", f"STEREO / EUVI {wavelength}", "Missions",
+            f"Standard SunPy STEREO/EUVI {wavelength} angstrom color table.", f"euvi{wavelength}")
     families = {"Missions": "existing EUV imager tables", "Sunset": "inspired by sunsets",
                 "Violet": "(Almost) ultraviolet", "SunCET": "SunCET branding",
                 "Poster": "SunCET NASA Poster"}

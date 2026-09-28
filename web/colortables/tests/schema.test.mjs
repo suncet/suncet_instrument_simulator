@@ -35,7 +35,7 @@ test('votes enforce ownership, idempotency, private records, closure, and rate l
       await db.exec('set role authenticated');
     };
     await db.exec('set role anon');
-    assert.equal((await db.query("select * from public.colortable_counts('suncet-frame300-v1')")).rows.length,36);
+    assert.equal((await db.query("select * from public.colortable_counts('suncet-frame300-v1')")).rows.length,40);
     assert.equal((await db.query("select * from public.colortable_counts('suncet-frame300-v1') where palette_slug='cividis'")).rows.length,0);
     assert.equal(await count('poster-blue-rose'),0);
     await assert.rejects(db.query('select * from public.colortable_favorites'), /permission denied/);

@@ -7,7 +7,7 @@ template is `exploration_notebooks/colortable_gallery.html`; behavior lives in
 ## Supabase setup
 
 1. In the project's SQL Editor, run `schema.sql`, then `catalog.sql` from this folder.
-   Both can be rerun without clearing votes. The catalog has 36 active palette IDs.
+   Both can be rerun without clearing votes. The catalog has 40 active palette IDs.
 2. Under Authentication > Sign In / Providers, enable anonymous sign-ins.
 3. Set the project URL and `sb_publishable_...` key in `docs/colortables/config.js`.
    These values are public. Never use a secret, service-role key, or database password.
@@ -42,7 +42,8 @@ its manifest and notes retain local source paths for reproducibility.
 
 - Gallery order is shuffled once per browser. Number order is also available.
 - Palette IDs remain stable. Options 24 and 29 are retired; their historical votes
-  are retained but excluded from totals. Tequila Sunrise is option 38.
+  are retained but excluded from totals. Tequila Sunrise is option 38, and the
+  SunPy STEREO/EUVI 171, 195, 284, and 304 tables are options 39-42.
 - The SunCET NASA Poster reference appears below the gallery.
 - Rankings appear only in Results; votes apply to palettes, independent of stretch.
 - Each authenticated browser identity has at most one favorite for each palette.
