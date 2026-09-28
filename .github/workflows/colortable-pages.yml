@@ -1,0 +1,55 @@
+name: Publish color table gallery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/colortables/**'
+      - 'web/colortables/**'
+      - '.github/workflows/colortable-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: colortable-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install test dependencies
+        working-directory: web/colortables
+        run: npm install --ignore-scripts
+      - name: Install test browser
+        working-directory: web/colortables
+        run: npx playwright install --with-deps chromium
+      - name: Verify access policies and browser voting
+        working-directory: web/colortables
+        run: npm test
+      - name: Apply optional public configuration overrides
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+        run: python web/colortables/configure.py docs/colortables
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/colortables
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
