@@ -63,6 +63,8 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.goto(pathToFileURL(path.join(localRoot,'index.html')).href);
     await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Local preview'));
     assert.equal(await page.locator('.option').count(),40);
+    assert.equal(await page.title(),'SunCET | Color Voting');
+    assert.equal(await page.locator('h1').textContent(),'SunCET | Color table options');
     assert.equal(await page.locator('#subtitle').count(),0);
     assert.equal(await page.locator('#order option[value="newest"]').count(),0);
     assert.equal(manifest.options.some(item=>[24,29].includes(item.id)),false);
@@ -131,6 +133,18 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
       await page.evaluate(()=>Promise.all([...document.querySelectorAll('.grid img')].map(image=>image.decode())));
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
       if(screenshotDir)await page.screenshot({path:path.join(screenshotDir,`gallery-${width}.png`)});
+    }
+    await page.selectOption('#family','All');
+    for(const width of [1440,390,320]) {
+      await page.setViewportSize({width,height:900});
+      await page.evaluate(()=>scrollTo(0,1200));
+      const scrollBefore=await page.evaluate(()=>scrollY);
+      assert.equal(await page.locator('.toolbar').evaluate(node=>Math.round(node.getBoundingClientRect().top)),0);
+      await page.selectOption('#stretch','current');
+      await page.selectOption('#stretch','asinh');
+      assert.ok(Math.abs(await page.evaluate(()=>scrollY)-scrollBefore)<2);
+      assert.equal(await page.locator('#stretch').evaluate(node=>{const box=node.getBoundingClientRect();return box.top>=0&&box.bottom<innerHeight;}),true);
+      if(screenshotDir)await page.screenshot({path:path.join(screenshotDir,`sticky-${width}.png`)});
     }
     closed=true;
     await page.reload();
