@@ -258,9 +258,10 @@ def render(fits_path, output, public_output=None, poster_path=None):
         "options": [{k: v for k, v in item.items() if k != "cmap"} for item in items],
     }
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    template = Path(__file__).with_name("colortable_gallery.html").read_text()
-    (output / "index.html").write_text(template.replace("__STUDY_JSON__", json.dumps(manifest).replace("</", "<\\/")))
     web_source = Path(__file__).resolve().parents[1] / "web/colortables"
+    script_version = hashlib.sha256((web_source / "gallery.js").read_bytes()).hexdigest()[:12]
+    template = Path(__file__).with_name("colortable_gallery.html").read_text().replace("__GALLERY_VERSION__", script_version)
+    (output / "index.html").write_text(template.replace("__STUDY_JSON__", json.dumps(manifest).replace("</", "<\\/")))
     shutil.copyfile(web_source / "gallery.js", output / "gallery.js")
     if not (output / "config.js").exists():
         shutil.copyfile(web_source / "config.js", output / "config.js")

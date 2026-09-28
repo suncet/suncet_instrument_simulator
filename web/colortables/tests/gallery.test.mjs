@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFile, writeFile, mkdir, mkdtemp, cp, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -12,6 +13,8 @@ const screenshotDir = process.env.GALLERY_SCREENSHOTS;
 
 test('gallery works locally and public votes persist, aggregate, undo, export, and recover', async () => {
   assert.equal(await readFile(path.join(site,'gallery.js'),'utf8'), await readFile(new URL('../gallery.js', import.meta.url),'utf8'));
+  const scriptVersion=createHash('sha256').update(await readFile(path.join(site,'gallery.js'))).digest('hex').slice(0,12);
+  assert.ok((await readFile(path.join(site,'index.html'),'utf8')).includes(`gallery.js?v=${scriptVersion}`));
   const localRoot = await mkdtemp(path.join(tmpdir(),'suncet-gallery-test-'));
   await cp(site,localRoot,{recursive:true});
   await writeFile(path.join(localRoot,'config.js'),'window.SUNCET_VOTING = {};');
@@ -21,6 +24,11 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     const url = new URL(req.url, origin);
     const json = (body, status = 200) => { res.writeHead(status, {'Content-Type':'application/json'}); res.end(JSON.stringify(body)); };
     try {
+      // Simulate an obsolete cached script at the old, unversioned URL.
+      if (url.pathname === '/gallery.js' && !url.search) {
+        res.setHeader('Content-Type','text/javascript');
+        return res.end('throw new Error("Obsolete gallery script was loaded");');
+      }
       if (url.pathname === '/config.js') {
         res.setHeader('Content-Type','text/javascript');
         return res.end(`window.SUNCET_VOTING=${JSON.stringify({supabaseUrl:origin,publishableKey:'sb_publishable_browser_test',turnstileSiteKey:''})};`);
@@ -130,6 +138,18 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.locator('#selectedImage').evaluate(image=>image.decode());
     assert.match(await page.locator('#selectedImage').getAttribute('src'),/^asinh\//);
     assert.equal(await page.locator('#previewStretch').inputValue(),'asinh');
+    const imagePixels = async () => page.locator('#selectedImage').evaluate(async image=>{
+      await image.decode();
+      const canvas=document.createElement('canvas');canvas.width=100;canvas.height=75;
+      canvas.getContext('2d').drawImage(image,0,0,100,75);
+      return canvas.toDataURL();
+    });
+    const asinhPixels=await imagePixels();
+    await page.selectOption('#previewStretch','current');
+    const currentPixels=await imagePixels();
+    assert.notEqual(currentPixels,asinhPixels);
+    await page.selectOption('#previewStretch','asinh');
+    assert.equal(await imagePixels(),asinhPixels);
     await page.selectOption('#previewStretch','current');
     assert.equal(await page.locator('#stretch').inputValue(),'current');
     for (const id of ['selectedImage','referenceImage']) assert.match(await page.locator('#'+id).getAttribute('src'),/^current\//);

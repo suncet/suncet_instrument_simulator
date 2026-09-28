@@ -309,8 +309,11 @@
   }
   for (const family of new Set(items.map(item => item.family))) $('family').append(element('option', '', family));
   for (const id of ['family', 'stretch', 'order', 'favoritesOnly']) $(id).onchange = render;
-  $('previewStretch').onchange = () => {
+  $('previewStretch').oninput = $('previewStretch').onchange = () => {
+    if ($('stretch').value === $('previewStretch').value) return;
     $('stretch').value = $('previewStretch').value;
+    // Request the full-resolution comparison before refreshing background thumbnails.
+    updatePreview();
     render();
   };
   $('galleryTab').onclick = () => showView('gallery');
