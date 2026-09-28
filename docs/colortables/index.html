@@ -29,6 +29,7 @@
 </style>
 <style>
 .toolbar{position:sticky;top:0;z-index:10;background:#101113}
+.preview-stretch{display:flex;align-items:center;gap:8px;max-width:100%}.preview-stretch select{min-width:0;max-width:100%}
 </style>
 <header><h1>SunCET | Color table options</h1><div class="meta">Identical data and intensity limits</div></header>
 <div class="status-line" id="statusLine"><span id="voteStatus" role="status" aria-live="polite">Loading gallery...</span><button id="retry" hidden>Retry</button></div>
@@ -47,8 +48,8 @@
 <section class="poster-reference" id="poster-reference" aria-labelledby="poster-title"><a href="references/suncet-nasa-poster.webp" target="_blank"><img src="references/suncet-nasa-poster.webp" width="1200" height="1757" loading="lazy" alt="SunCET NASA Poster, the color reference for the poster palettes"></a><h2 id="poster-title">SunCET NASA Poster</h2></section>
 <footer><span>Radial filter: 300 px</span><span>Existing EUV imager tables: <a href="https://docs.sunpy.org/en/stable/_modules/sunpy/visualization/colormaps/cm.html" target="_blank">SunPy</a></span><a href="README.md" target="_blank">Rendering notes</a></footer>
 <dialog id="preview" aria-labelledby="previewTitle">
-<div class="dialog-bar"><h2 id="previewTitle"></h2><div class="segmented"><button id="compareMode" aria-pressed="true">Compare</button><button id="singleMode" aria-pressed="false">Single</button></div><button id="previous" title="Previous palette" aria-label="Previous palette">&#8592;</button><button id="next" title="Next palette" aria-label="Next palette">&#8594;</button><button id="close" class="close" title="Close" aria-label="Close preview">&times;</button></div>
-<div class="compare" id="compareImages"><figure><img id="referenceImage" alt="Current Inferno reference"><figcaption>01 / Current Inferno</figcaption></figure><figure><img id="selectedImage" alt=""><figcaption id="selectedCaption"></figcaption></figure></div>
+<div class="dialog-bar"><h2 id="previewTitle"></h2><label class="preview-stretch"><span>Stretch</span><select id="previewStretch" aria-label="Preview intensity stretch"><option value="current">Fourth root</option><option value="asinh">Asinh</option></select></label><div class="segmented"><button id="compareMode" aria-pressed="true">Compare</button><button id="singleMode" aria-pressed="false">Single</button></div><button id="previous" title="Previous palette" aria-label="Previous palette">&#8592;</button><button id="next" title="Next palette" aria-label="Next palette">&#8594;</button><button id="close" class="close" title="Close" aria-label="Close preview">&times;</button></div>
+<div class="compare" id="compareImages"><figure><img id="referenceImage" alt="Current Inferno reference"><figcaption id="referenceCaption">01 / Current Inferno</figcaption></figure><figure><img id="selectedImage" alt=""><figcaption id="selectedCaption"></figcaption></figure></div>
 <p id="description" class="detail"></p><div class="detail-links"><a id="fullImage" target="_blank">Full-resolution PNG</a><a id="lutLink" download>RGB lookup table</a><button id="detailFavorite">Add to favorites</button></div>
 </dialog>
 <dialog id="verification" class="verification" aria-labelledby="verificationTitle"><h2 id="verificationTitle">Start voting</h2><p>One quick check before your first vote.</p><div id="captcha"></div><p id="verificationStatus" role="status"></p><button id="cancelVerification">Cancel</button></dialog>

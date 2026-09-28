@@ -129,8 +129,29 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.getByRole('button',{name:'Compare Poster / Blue to rose',exact:true}).click();
     await page.locator('#selectedImage').evaluate(image=>image.decode());
     assert.match(await page.locator('#selectedImage').getAttribute('src'),/^asinh\//);
+    assert.equal(await page.locator('#previewStretch').inputValue(),'asinh');
+    await page.selectOption('#previewStretch','current');
+    assert.equal(await page.locator('#stretch').inputValue(),'current');
+    for (const id of ['selectedImage','referenceImage']) assert.match(await page.locator('#'+id).getAttribute('src'),/^current\//);
+    assert.match(await page.locator('#fullImage').getAttribute('href'),/^current\//);
+    assert.match(await page.locator('#referenceCaption').textContent(),/fourth root/);
+    await page.getByRole('button',{name:'Next palette',exact:true}).click();
+    assert.equal(await page.locator('#previewStretch').inputValue(),'current');
+    await page.selectOption('#previewStretch','asinh');
     await page.getByRole('button',{name:'Single',exact:true}).click();
     assert.equal(await page.locator('#compareImages').evaluate(node=>node.classList.contains('single')),true);
+    await page.selectOption('#previewStretch','current');
+    assert.match(await page.locator('#selectedImage').getAttribute('src'),/^current\//);
+    await page.getByRole('button',{name:'Compare',exact:true}).click();
+    for (const width of [1440,390,320]) {
+      await page.setViewportSize({width,height:900});
+      await page.selectOption('#previewStretch','asinh');
+      await page.locator('#selectedImage').evaluate(image=>image.decode());
+      await page.locator('#referenceImage').evaluate(image=>image.decode());
+      assert.equal(await page.locator('#preview').evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+      assert.equal(await page.locator('#previewStretch').evaluate(node=>{const box=node.getBoundingClientRect();return box.left>=0&&box.right<=innerWidth&&box.top>=0&&box.bottom<=innerHeight;}),true);
+      if(screenshotDir)await page.screenshot({path:path.join(screenshotDir,`preview-${width}.png`)});
+    }
     await page.keyboard.press('Escape');
     await page.locator('#poster-reference img').evaluate(image=>image.decode());
     assert.equal(await page.locator('#poster-reference img').evaluate(image=>image.naturalWidth>0),true);

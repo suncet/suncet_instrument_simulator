@@ -287,6 +287,8 @@
   }
   function updatePreview() {
     const stretch = $('stretch').value;
+    $('previewStretch').value = stretch;
+    $('referenceCaption').textContent = `01 / Current Inferno / ${stretch === 'current' ? 'fourth root' : 'asinh'}`;
     $('previewTitle').textContent = `${String(selected.id).padStart(2,'0')} / ${selected.title}`;
     $('referenceImage').src = items[0].images[stretch];
     $('selectedImage').src = selected.images[stretch];
@@ -307,6 +309,10 @@
   }
   for (const family of new Set(items.map(item => item.family))) $('family').append(element('option', '', family));
   for (const id of ['family', 'stretch', 'order', 'favoritesOnly']) $(id).onchange = render;
+  $('previewStretch').onchange = () => {
+    $('stretch').value = $('previewStretch').value;
+    render();
+  };
   $('galleryTab').onclick = () => showView('gallery');
   $('resultsTab').onclick = () => showView('results');
   $('retry').onclick = initialiseVoting;
