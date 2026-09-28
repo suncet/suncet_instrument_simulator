@@ -224,6 +224,16 @@ def render(fits_path, output, public_output=None, poster_path=None):
         Image.fromarray(np.repeat(rgb[None], 16, axis=0)).save(output / "ramps" / f"{name}.png")
         item["ramp"] = f"ramps/{name}.png"
         item["lut"] = f"luts/{name}.csv"
+    # Explicit Open Graph artwork prevents crawlers from selecting the poster.
+    social = Image.new("RGB", (1200, 630), "#101113")
+    draw = ImageDraw.Draw(social)
+    draw.text((24, 20), "SunCET | Color Voting", font=font(36), fill="white")
+    for x, slug in [(24, "current-inferno"), (612, "aurora-mint")]:
+        item = next(item for item in items if item["slug"] == slug)
+        with Image.open(output / item["images"]["asinh"]) as picture:
+            social.paste(picture.convert("RGB").resize((564, 423), Image.Resampling.LANCZOS), (x, 96))
+        draw.text((x, 545), item["title"], font=font(28), fill="white")
+    social.save(output / "social-preview-v1.png")
     for stretch in displays:
         contact_sheet(items, output, stretch).save(output / f"overview-{stretch}.png")
         for family in dict.fromkeys(x["family"] for x in items if x["family"] != "Reference"):
@@ -288,7 +298,7 @@ def render(fits_path, output, public_output=None, poster_path=None):
                     (root / directory / f"{name}.{extension}").unlink(missing_ok=True)
         for directory in ["current", "asinh", "luts", "ramps", "thumbs", "vendor"]:
             shutil.copytree(output / directory, public_output / directory, dirs_exist_ok=True)
-        for filename in ["gallery.js", "overview-current.png", "overview-asinh.png"]:
+        for filename in ["gallery.js", "overview-current.png", "overview-asinh.png", "social-preview-v1.png"]:
             shutil.copyfile(output / filename, public_output / filename)
         if (output / "references").exists():
             shutil.copytree(output / "references", public_output / "references", dirs_exist_ok=True)

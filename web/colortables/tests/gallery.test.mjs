@@ -64,6 +64,13 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Local preview'));
     assert.equal(await page.locator('.option').count(),40);
     assert.equal(await page.title(),'SunCET | Color Voting');
+    const socialImage='https://suncet.github.io/suncet_instrument_simulator/social-preview-v1.png';
+    assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'),socialImage);
+    assert.equal(await page.locator('meta[name="twitter:image"]').getAttribute('content'),socialImage);
+    assert.equal(await page.locator('meta[name="twitter:card"]').getAttribute('content'),'summary_large_image');
+    const socialBytes=await readFile(path.join(site,'social-preview-v1.png'));
+    assert.equal(socialBytes.readUInt32BE(16),1200);
+    assert.equal(socialBytes.readUInt32BE(20),630);
     assert.equal(await page.locator('h1').textContent(),'SunCET | Color table options');
     assert.equal(await page.locator('#subtitle').count(),0);
     assert.equal(await page.locator('#order option[value="newest"]').count(),0);
