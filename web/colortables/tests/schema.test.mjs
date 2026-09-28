@@ -21,6 +21,7 @@ test('votes enforce ownership, idempotency, private records, closure, and rate l
     const schema = await readFile(new URL('schema.sql', source), 'utf8');
     const catalog = await readFile(new URL('catalog.sql', source), 'utf8');
     await db.exec(schema);
+    await db.exec("insert into public.colortable_studies values ('suncet-frame300-v1','Study',true); insert into public.colortable_palettes(study_id,slug,number,title) values ('suncet-frame300-v1','cividis',29,'Cividis'); insert into public.colortable_favorites(study_id,palette_slug,user_id) values ('suncet-frame300-v1','cividis','00000000-0000-0000-0000-000000000001');");
     await db.exec(catalog);
     await db.exec(schema);
     await db.exec(catalog);
@@ -34,11 +35,17 @@ test('votes enforce ownership, idempotency, private records, closure, and rate l
       await db.exec('set role authenticated');
     };
     await db.exec('set role anon');
-    assert.equal((await db.query("select * from public.colortable_counts('suncet-frame300-v1')")).rows.length,37);
+    assert.equal((await db.query("select * from public.colortable_counts('suncet-frame300-v1')")).rows.length,36);
+    assert.equal((await db.query("select * from public.colortable_counts('suncet-frame300-v1') where palette_slug='cividis'")).rows.length,0);
     assert.equal(await count('poster-blue-rose'),0);
     await assert.rejects(db.query('select * from public.colortable_favorites'), /permission denied/);
     await assert.rejects(vote('poster-blue-rose',true), /permission denied/);
     await user(1);
+    assert.equal((await db.query("select * from public.colortable_favorites where palette_slug='cividis'")).rows.length,1);
+    await assert.rejects(vote('cividis',true), /Unknown palette/);
+    await vote('tequila-sunrise',true);
+    assert.equal(await count('tequila-sunrise'),1);
+    await vote('tequila-sunrise',false);
     await vote('poster-blue-rose',true);
     await vote('poster-blue-rose',true);
     assert.equal(await count('poster-blue-rose'),1);

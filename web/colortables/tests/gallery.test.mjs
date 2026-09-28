@@ -62,18 +62,23 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     page.on('pageerror',error=>errors.push(error.message));
     await page.goto(pathToFileURL(path.join(localRoot,'index.html')).href);
     await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Local preview'));
-    assert.equal(await page.locator('.option').count(),37);
+    assert.equal(await page.locator('.option').count(),36);
+    assert.equal(await page.locator('#subtitle').count(),0);
+    assert.equal(await page.locator('#order option[value="newest"]').count(),0);
+    assert.equal(manifest.options.some(item=>[24,29].includes(item.id)),false);
+    assert.equal(manifest.options.find(item=>item.slug==='tequila-sunrise').id,38);
+    assert.equal(manifest.options.filter(item=>item.family==='SunCET branding').every(item=>item.title.startsWith('SunCET branding /')),true);
     await page.getByRole('button',{name:'Favorite Poster / Blue to rose',exact:true}).click();
     await page.reload();
     assert.equal(await page.locator('#favoritesCount').textContent(),'1');
     assert.equal(await page.getByRole('tab',{name:'Results',exact:true}).isDisabled(),true);
     await page.goto(origin);
-    await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Voting is open'));
+    await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent==='Vote (with the star) for as many as you like');
     assert.equal(signups,0);
     assert.equal(await page.locator('#favoritesCount').textContent(),'0');
-    await page.selectOption('#order','newest');
-    assert.match(await page.locator('.caption h2').first().textContent(),/Copper/);
-    await page.selectOption('#family','Poster');
+    await page.selectOption('#order','number');
+    assert.match(await page.locator('.caption h2').first().textContent(),/Inferno/);
+    await page.selectOption('#family','SunCET NASA Poster');
     assert.equal(await page.locator('.option').count(),5);
     const vote = page.getByRole('button',{name:'Favorite Poster / Blue to rose',exact:true});
     await vote.click();
@@ -86,7 +91,7 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     assert.match(await page.locator('#rankings tr').first().textContent(),/Blue to rose.*1/);
     const secondContext = await browser.newContext(), second = await secondContext.newPage();
     await second.goto(origin);
-    await second.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Voting is open'));
+    await second.waitForFunction(()=>document.querySelector('#voteStatus').textContent==='Vote (with the star) for as many as you like');
     await second.getByRole('button',{name:'Favorite Poster / Blue to rose',exact:true}).click();
     await second.waitForFunction(()=>document.querySelector('#voteStatus').textContent==='Favorite counted.');
     assert.equal(signups,2);
@@ -96,8 +101,8 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.getByRole('button',{name:'Export CSV',exact:true}).click();
     const download=await downloadPromise;
     const csv=await readFile(await download.path(),'utf8');
-    assert.match(csv,/"33","Poster \/ Blue to rose","Poster","2"/);
-    assert.equal(csv.trim().split('\r\n').length,38);
+    assert.match(csv,/"33","Poster \/ Blue to rose","SunCET NASA Poster","2"/);
+    assert.equal(csv.trim().split('\r\n').length,37);
     if(screenshotDir){await mkdir(screenshotDir,{recursive:true});await page.screenshot({path:path.join(screenshotDir,'results-desktop.png')});}
     await page.getByRole('tab',{name:'Gallery',exact:true}).click();
     await page.getByRole('button',{name:'Favorite Poster / Blue to rose',exact:true}).click();
@@ -108,8 +113,8 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('not confirmed'));
     assert.equal(await page.locator('#favoritesCount').textContent(),'0');
     await page.getByRole('button',{name:'Retry',exact:true}).click();
-    await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Voting is open'));
-    await page.selectOption('#family','Poster');
+    await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent==='Vote (with the star) for as many as you like');
+    await page.selectOption('#family','SunCET NASA Poster');
     await page.selectOption('#stretch','asinh');
     await page.getByRole('button',{name:'Compare Poster / Blue to rose',exact:true}).click();
     await page.locator('#selectedImage').evaluate(image=>image.decode());
@@ -117,7 +122,9 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.getByRole('button',{name:'Single',exact:true}).click();
     assert.equal(await page.locator('#compareImages').evaluate(node=>node.classList.contains('single')),true);
     await page.keyboard.press('Escape');
-    for(const width of [1440,390,320]) {
+    await page.locator('#poster-reference img').evaluate(image=>image.decode());
+    assert.equal(await page.locator('#poster-reference img').evaluate(image=>image.naturalWidth>0),true);
+    for(const width of [1920,1440,390,320]) {
       await page.setViewportSize({width,height:900});
       await page.evaluate(()=>scrollTo(0,0));
       await page.evaluate(()=>Promise.all([...document.querySelectorAll('.grid img')].map(image=>image.decode())));

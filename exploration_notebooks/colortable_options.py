@@ -137,7 +137,18 @@ def options():
     add("copper-teal", "Copper / Teal", "Alternatives",
         "Deep teal shadows transitioning through muted copper to warm gold.",
         colors=["#000407", "#082c3c", "#26515a", "#776762", "#bd886d", "#e9be8a", "#fff1cd"])
-    return result
+    add("tequila-sunrise", "Tequila Sunrise", "Sunset",
+        "Grenadine red through orange juice gold to a pale citrus highlight, inspired by a Tequila Sunrise drink.",
+        colors=["#080103", "#490817", "#a41929", "#e94725", "#fa8b24", "#ffd354", "#fff4bb"])
+    families = {"Missions": "existing EUV imager tables", "Sunset": "inspired by sunsets",
+                "Violet": "(Almost) ultraviolet", "SunCET": "SunCET branding",
+                "Poster": "SunCET NASA Poster"}
+    for item in result:
+        if item["family"] == "SunCET":
+            item["title"] = item["title"].replace("SunCET /", "SunCET branding /")
+        item["family"] = families.get(item["family"], item["family"])
+    # Retain historical numbers and slugs so existing votes never change meaning.
+    return [item for item in result if item["id"] not in {24, 29}]
 
 
 def font(size):
@@ -167,7 +178,7 @@ def contact_sheet(items, output, stretch, *, columns=4, thumb_width=400, title=N
     return sheet
 
 
-def render(fits_path, output, public_output=None):
+def render(fits_path, output, public_output=None, poster_path=None):
     output.mkdir(parents=True, exist_ok=True)
     for directory in ["current", "asinh", "luts", "ramps", "sheets", "thumbs/current", "thumbs/asinh"]:
         (output / directory).mkdir(parents=True, exist_ok=True)
@@ -180,6 +191,12 @@ def render(fits_path, output, public_output=None):
                   0., float(np.arcsinh((high - low) / width))),
     }
     items = options()
+    if poster_path:
+        (output / "references").mkdir(exist_ok=True)
+        with Image.open(poster_path) as poster:
+            poster = poster.convert("RGB")
+            poster.thumbnail((1200, 1800), Image.Resampling.LANCZOS)
+            poster.save(output / "references/suncet-nasa-poster.webp", quality=90)
     for item in items:
         name = f'{item["id"]:02d}-{item["slug"]}'
         item["images"] = {}
@@ -210,11 +227,11 @@ def render(fits_path, output, public_output=None):
             subset = [items[0]] + [x for x in items if x["family"] == family]
             contact_sheet(subset, output, stretch, columns=3,
                           title=f"SunCET / Frame 300 / {family}").save(output / "sheets" / f"{family.lower()}-{stretch}.png")
-    shortlist = [items[n - 1] for n in [1, 4, 13, 15, 18, 23, 26, 32]]
+    shortlist = [item for item in items if item["id"] in [1, 4, 13, 15, 18, 23, 26, 32]]
     contact_sheet(shortlist, output, "asinh", title="SunCET / Eight directions / Frame 300").save(output / "highlights.png")
     for stretch in displays:
-        contact_sheet([items[0]] + items[32:], output, stretch, columns=3,
-                      title="SunCET / Five new directions / Frame 300").save(output / f"new-options-{stretch}.png")
+        contact_sheet([items[0]] + [item for item in items if item["id"] >= 33], output, stretch, columns=3,
+                      title="SunCET / New directions / Frame 300").save(output / f"new-options-{stretch}.png")
     manifest = {
         "study_id": "suncet-frame300-v1",
         "input": str(fits_path.resolve()), "input_sha256": hashlib.sha256(fits_path.read_bytes()).hexdigest(),
@@ -259,10 +276,19 @@ def render(fits_path, output, public_output=None):
     )
     if public_output:
         public_output.mkdir(parents=True, exist_ok=True)
+        # Remove only known retired generated assets, never unrelated output files.
+        for root in [output, public_output]:
+            for name in ["24-suncet-blue-gold", "29-cividis"]:
+                for directory, extension in [("current", "png"), ("asinh", "png"),
+                                             ("ramps", "png"), ("luts", "csv"),
+                                             ("thumbs/current", "webp"), ("thumbs/asinh", "webp")]:
+                    (root / directory / f"{name}.{extension}").unlink(missing_ok=True)
         for directory in ["current", "asinh", "luts", "ramps", "thumbs", "vendor"]:
             shutil.copytree(output / directory, public_output / directory, dirs_exist_ok=True)
         for filename in ["gallery.js", "overview-current.png", "overview-asinh.png"]:
             shutil.copyfile(output / filename, public_output / filename)
+        if (output / "references").exists():
+            shutil.copytree(output / "references", public_output / "references", dirs_exist_ok=True)
         if not (public_output / "config.js").exists():
             shutil.copyfile(web_source / "config.js", public_output / "config.js")
         public_manifest = {**manifest, "input": fits_path.name}
@@ -272,11 +298,12 @@ def render(fits_path, output, public_output=None):
         (public_output / ".nojekyll").touch()
         seed = "-- Generated by exploration_notebooks.colortable_options. Safe to rerun.\n"
         seed += "insert into public.colortable_studies (id, title) values ('suncet-frame300-v1', 'SunCET frame 300') on conflict (id) do nothing;\n"
+        seed += "update public.colortable_palettes set is_active=false where study_id='suncet-frame300-v1' and slug in ('suncet-blue-gold', 'cividis');\n"
         for item in items:
             title = item["title"].replace("'", "''")
             seed += ("insert into public.colortable_palettes (study_id, slug, number, title) "
                      f"values ('suncet-frame300-v1', '{item['slug']}', {item['id']}, '{title}') "
-                     "on conflict (study_id, slug) do update set number=excluded.number, title=excluded.title;\n")
+                     "on conflict (study_id, slug) do update set number=excluded.number, title=excluded.title, is_active=true;\n")
         (web_source / "catalog.sql").write_text(seed)
     print(json.dumps({"gallery": str((output / "index.html").resolve()), "tables": len(items),
                       "full_resolution_pngs": 2 * len(items), "reference_pixel_match": True}, indent=2))
@@ -287,8 +314,9 @@ def main():
     parser.add_argument("--fits", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=Path("output/colortables/frame300"))
     parser.add_argument("--public-output", type=Path, help="Publishable static files with local paths removed")
+    parser.add_argument("--poster", type=Path, help="SunCET NASA poster reference image")
     args = parser.parse_args()
-    render(args.fits, args.output, args.public_output)
+    render(args.fits, args.output, args.public_output, args.poster)
 
 
 if __name__ == "__main__":

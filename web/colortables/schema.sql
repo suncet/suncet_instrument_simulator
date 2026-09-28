@@ -22,6 +22,7 @@ create table if not exists public.colortable_favorites (
     primary key (study_id, user_id, palette_slug),
     foreign key (study_id, palette_slug) references public.colortable_palettes(study_id, slug)
 );
+alter table public.colortable_palettes add column if not exists is_active boolean not null default true;
 create index if not exists colortable_favorites_counts
     on public.colortable_favorites(study_id, palette_slug);
 create table if not exists public.colortable_vote_limits (
@@ -70,7 +71,7 @@ begin
     if not found then
         raise exception 'Voting is closed or the study does not exist.' using errcode = '22023';
     end if;
-    perform 1 from public.colortable_palettes where study_id = p_study and slug = p_palette;
+    perform 1 from public.colortable_palettes where study_id = p_study and slug = p_palette and is_active;
     if not found then
         raise exception 'Unknown palette.' using errcode = '22023';
     end if;
@@ -105,7 +106,7 @@ as $$
     select p.slug, count(f.user_id)
     from public.colortable_palettes p
     left join public.colortable_favorites f on f.study_id = p.study_id and f.palette_slug = p.slug
-    where p.study_id = p_study
+    where p.study_id = p_study and p.is_active
     group by p.slug;
 $$;
 

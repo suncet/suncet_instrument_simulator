@@ -7,7 +7,7 @@ template is `exploration_notebooks/colortable_gallery.html`; behavior lives in
 ## Supabase setup
 
 1. In the project's SQL Editor, run `schema.sql`, then `catalog.sql` from this folder.
-   Both can be rerun without clearing votes. The catalog has 37 stable palette IDs.
+   Both can be rerun without clearing votes. The catalog has 36 active palette IDs.
 2. Under Authentication > Sign In / Providers, enable anonymous sign-ins.
 3. Set the project URL and `sb_publishable_...` key in `docs/colortables/config.js`.
    These values are public. Never use a secret, service-role key, or database password.
@@ -40,8 +40,10 @@ its manifest and notes retain local source paths for reproducibility.
 
 ## Voting behavior
 
-- Gallery order is shuffled once per browser. Number and newest-first orders remain available.
-- Original candidate IDs 1-32 are preserved; the five additions are 33-37.
+- Gallery order is shuffled once per browser. Number order is also available.
+- Palette IDs remain stable. Options 24 and 29 are retired; their historical votes
+  are retained but excluded from totals. Tequila Sunrise is option 38.
+- The SunCET NASA Poster reference appears below the gallery.
 - Rankings appear only in Results; votes apply to palettes, independent of stretch.
 - Each authenticated browser identity has at most one favorite for each palette.
 - SQL derives identity from `auth.uid()`, validates the palette and open study,
@@ -67,7 +69,8 @@ their accounts are deleted. These are informal preference counts, not verified p
 
 ```sh
 MPLBACKEND=Agg python -m exploration_notebooks.colortable_options \
-  --fits '/path/to/frame300.fits' --public-output docs/colortables
+  --fits '/path/to/frame300.fits' --public-output docs/colortables \
+  --poster '/path/to/SunCET Poster v3.png'
 cd web/colortables
 npm install
 npx playwright install chromium

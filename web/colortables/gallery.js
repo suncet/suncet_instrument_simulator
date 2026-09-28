@@ -60,7 +60,6 @@
     const stretch = $('stretch').value;
     visible = items.filter(matches).sort((a, b) => {
       if ($('order').value === 'number') return a.id - b.id;
-      if ($('order').value === 'newest') return b.id - a.id;
       return order.indexOf(a.slug) - order.indexOf(b.slug);
     });
     $('grid').replaceChildren();
@@ -181,7 +180,7 @@
       if (result.error) throw result.error;
       await readFavorites();
       ready = result.data.is_open;
-      status(ready ? 'Voting is open / Your favorites count anonymously.' : 'Voting has closed / Results remain available.');
+      status(ready ? 'Vote (with the star) for as many as you like' : 'Voting has closed / Results remain available.');
     } catch (error) {
       status('Voting is unavailable. Your votes have not been changed. Please retry.', true);
       $('retry').hidden = false;
@@ -255,7 +254,7 @@
       const result = await client.rpc('colortable_counts', {p_study: study.study_id});
       if (result.error) throw result.error;
       if (request !== countRequest) return;
-      counts = new Map(result.data.map(row => [row.palette_slug, Number(row.favorites)]));
+      counts = new Map(result.data.filter(row => bySlug.has(row.palette_slug)).map(row => [row.palette_slug, Number(row.favorites)]));
       $('resultsStatus').textContent = `Updated ${new Date().toLocaleTimeString()} / ${[...counts.values()].reduce((a,b) => a+b,0)} favorites`;
       $('exportResults').disabled = false;
       renderResults();
@@ -306,7 +305,6 @@
     selected = list[(list.indexOf(selected) + delta + list.length) % list.length];
     updatePreview();
   }
-  $('subtitle').textContent = `Frame ${study.frame} / ${items.length} directions`;
   for (const family of new Set(items.map(item => item.family))) $('family').append(element('option', '', family));
   for (const id of ['family', 'stretch', 'order', 'favoritesOnly']) $(id).onchange = render;
   $('galleryTab').onclick = () => showView('gallery');

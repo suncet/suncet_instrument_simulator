@@ -72,7 +72,7 @@
       "id": 2,
       "slug": "aia171-eui174",
       "title": "AIA 171 / EUI 174",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard SunPy table; also SUVI 171 and EUI FSI/HRI 174.",
       "source": "sdoaia171",
       "anchors": null,
@@ -91,7 +91,7 @@
       "id": 3,
       "slug": "aia193-suvi195",
       "title": "AIA 193 / SUVI 195",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard SunPy table, shared by AIA 193 and SUVI 195.",
       "source": "goes-rsuvi195",
       "anchors": null,
@@ -110,7 +110,7 @@
       "id": 4,
       "slug": "aia211",
       "title": "AIA 211",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard AIA violet table.",
       "source": "sdoaia211",
       "anchors": null,
@@ -129,7 +129,7 @@
       "id": 5,
       "slug": "aia335-suvi284",
       "title": "AIA 335 / SUVI 284",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard SunPy table, shared by AIA 335 and SUVI 284.",
       "source": "goes-rsuvi284",
       "anchors": null,
@@ -148,7 +148,7 @@
       "id": 6,
       "slug": "aia304-eui304",
       "title": "AIA 304 / EUI 304",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard SunPy table; also SUVI 304.",
       "source": "solar orbiterfsi304",
       "anchors": null,
@@ -167,7 +167,7 @@
       "id": 7,
       "slug": "suvi131",
       "title": "SUVI 131 / AIA 131",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard teal mission table.",
       "source": "goes-rsuvi131",
       "anchors": null,
@@ -186,7 +186,7 @@
       "id": 8,
       "slug": "suvi94",
       "title": "SUVI 94 / AIA 94",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard green mission table.",
       "source": "goes-rsuvi94",
       "anchors": null,
@@ -205,7 +205,7 @@
       "id": 9,
       "slug": "eit171",
       "title": "SOHO / EIT 171",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard SOHO/EIT table.",
       "source": "sohoeit171",
       "anchors": null,
@@ -224,7 +224,7 @@
       "id": 10,
       "slug": "eit195",
       "title": "SOHO / EIT 195",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard SOHO/EIT table.",
       "source": "sohoeit195",
       "anchors": null,
@@ -243,7 +243,7 @@
       "id": 11,
       "slug": "eit284",
       "title": "SOHO / EIT 284",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Standard SOHO/EIT table.",
       "source": "sohoeit284",
       "anchors": null,
@@ -262,7 +262,7 @@
       "id": 12,
       "slug": "eui-amber",
       "title": "EUI-inspired amber",
-      "family": "Missions",
+      "family": "existing EUV imager tables",
       "description": "Custom warm-gold variation; not an official EUI lookup table.",
       "source": null,
       "anchors": [
@@ -289,7 +289,7 @@
       "id": 13,
       "slug": "sunset-gold",
       "title": "Sunset / Golden hour",
-      "family": "Sunset",
+      "family": "inspired by sunsets",
       "description": "Custom sequential sunset colors.",
       "source": null,
       "anchors": [
@@ -316,7 +316,7 @@
       "id": 14,
       "slug": "sunset-rose",
       "title": "Sunset / Rose",
-      "family": "Sunset",
+      "family": "inspired by sunsets",
       "description": "Custom sequential sunset colors.",
       "source": null,
       "anchors": [
@@ -343,7 +343,7 @@
       "id": 15,
       "slug": "sunset-twilight",
       "title": "Sunset / Twilight",
-      "family": "Sunset",
+      "family": "inspired by sunsets",
       "description": "Custom sequential sunset colors.",
       "source": null,
       "anchors": [
@@ -370,7 +370,7 @@
       "id": 16,
       "slug": "sunset-ember",
       "title": "Sunset / Ember",
-      "family": "Sunset",
+      "family": "inspired by sunsets",
       "description": "Custom sequential sunset colors.",
       "source": null,
       "anchors": [
@@ -397,7 +397,7 @@
       "id": 17,
       "slug": "sunset-coral",
       "title": "Sunset / Coral",
-      "family": "Sunset",
+      "family": "inspired by sunsets",
       "description": "Custom sequential sunset colors.",
       "source": null,
       "anchors": [
@@ -424,7 +424,7 @@
       "id": 18,
       "slug": "euv-violet",
       "title": "EUV / Electric violet",
-      "family": "Violet",
+      "family": "(Almost) ultraviolet",
       "description": "Custom violet false-color table for EUV imagery.",
       "source": null,
       "anchors": [
@@ -451,7 +451,7 @@
       "id": 19,
       "slug": "euv-amethyst",
       "title": "EUV / Amethyst",
-      "family": "Violet",
+      "family": "(Almost) ultraviolet",
       "description": "Custom violet false-color table for EUV imagery.",
       "source": null,
       "anchors": [
@@ -478,7 +478,7 @@
       "id": 20,
       "slug": "euv-ice",
       "title": "EUV / Violet ice",
-      "family": "Violet",
+      "family": "(Almost) ultraviolet",
       "description": "Custom violet false-color table for EUV imagery.",
       "source": null,
       "anchors": [
@@ -505,7 +505,7 @@
       "id": 21,
       "slug": "euv-lilac",
       "title": "EUV / Lilac",
-      "family": "Violet",
+      "family": "(Almost) ultraviolet",
       "description": "Custom violet false-color table for EUV imagery.",
       "source": null,
       "anchors": [
@@ -532,7 +532,7 @@
       "id": 22,
       "slug": "euv-magenta",
       "title": "EUV / Violet to pink",
-      "family": "Violet",
+      "family": "(Almost) ultraviolet",
       "description": "Custom violet false-color table for EUV imagery.",
       "source": null,
       "anchors": [
@@ -558,8 +558,8 @@
     {
       "id": 23,
       "slug": "suncet-brand-fire",
-      "title": "SunCET / Brand fire",
-      "family": "SunCET",
+      "title": "SunCET branding / Brand fire",
+      "family": "SunCET branding",
       "description": "Uses printed hex anchors from the SunCET palette PDF, with dark/bright extensions.",
       "source": null,
       "anchors": [
@@ -583,58 +583,10 @@
       "lut": "luts/23-suncet-brand-fire.csv"
     },
     {
-      "id": 24,
-      "slug": "suncet-blue-gold",
-      "title": "SunCET / Blue + gold",
-      "family": "SunCET",
-      "description": "Uses printed hex anchors from the SunCET palette PDF, with dark/bright extensions.",
-      "source": null,
-      "anchors": [
-        [
-          0,
-          "#000000"
-        ],
-        [
-          0.16,
-          "#081d45"
-        ],
-        [
-          0.36,
-          "#0063ed"
-        ],
-        [
-          0.53,
-          "#ad89a0"
-        ],
-        [
-          0.7,
-          "#ed8a00"
-        ],
-        [
-          0.88,
-          "#ffcf73"
-        ],
-        [
-          1,
-          "#fff5df"
-        ]
-      ],
-      "images": {
-        "current": "current/24-suncet-blue-gold.png",
-        "asinh": "asinh/24-suncet-blue-gold.png"
-      },
-      "thumbnails": {
-        "current": "thumbs/current/24-suncet-blue-gold.webp",
-        "asinh": "thumbs/asinh/24-suncet-blue-gold.webp"
-      },
-      "ramp": "ramps/24-suncet-blue-gold.png",
-      "lut": "luts/24-suncet-blue-gold.csv"
-    },
-    {
       "id": 25,
       "slug": "suncet-triad",
-      "title": "SunCET / Violet + green",
-      "family": "SunCET",
+      "title": "SunCET branding / Violet + green",
+      "family": "SunCET branding",
       "description": "Uses printed hex anchors from the SunCET palette PDF, with dark/bright extensions.",
       "source": null,
       "anchors": [
@@ -682,7 +634,7 @@
       "id": 26,
       "slug": "poster-rose",
       "title": "Poster / Lilac + rose",
-      "family": "Poster",
+      "family": "SunCET NASA Poster",
       "description": "Uses exact indigo, lilac, and pink colors sampled from SunCET Poster v3.png.",
       "source": null,
       "anchors": [
@@ -709,7 +661,7 @@
       "id": 27,
       "slug": "poster-indigo",
       "title": "Poster / Indigo glow",
-      "family": "Poster",
+      "family": "SunCET NASA Poster",
       "description": "Uses exact indigo, lilac, and pink colors sampled from SunCET Poster v3.png.",
       "source": null,
       "anchors": [
@@ -750,25 +702,6 @@
       },
       "ramp": "ramps/28-magma.png",
       "lut": "luts/28-magma.csv"
-    },
-    {
-      "id": 29,
-      "slug": "cividis",
-      "title": "Cividis",
-      "family": "Alternatives",
-      "description": "Matplotlib reference table.",
-      "source": "cividis",
-      "anchors": null,
-      "images": {
-        "current": "current/29-cividis.png",
-        "asinh": "asinh/29-cividis.png"
-      },
-      "thumbnails": {
-        "current": "thumbs/current/29-cividis.webp",
-        "asinh": "thumbs/asinh/29-cividis.webp"
-      },
-      "ramp": "ramps/29-cividis.png",
-      "lut": "luts/29-cividis.csv"
     },
     {
       "id": 30,
@@ -839,7 +772,7 @@
       "id": 33,
       "slug": "poster-blue-rose",
       "title": "Poster / Blue to rose",
-      "family": "Poster",
+      "family": "SunCET NASA Poster",
       "description": "Poster purple shadows, bright blue loops, and pink highlights, with a pale extension.",
       "source": null,
       "anchors": [
@@ -891,7 +824,7 @@
       "id": 34,
       "slug": "poster-blue-lilac",
       "title": "Poster / Blue + lilac",
-      "family": "Poster",
+      "family": "SunCET NASA Poster",
       "description": "A cooler poster variation: indigo and blue through lilac to pale pink.",
       "source": null,
       "anchors": [
@@ -1019,6 +952,33 @@
       },
       "ramp": "ramps/37-copper-teal.png",
       "lut": "luts/37-copper-teal.csv"
+    },
+    {
+      "id": 38,
+      "slug": "tequila-sunrise",
+      "title": "Tequila Sunrise",
+      "family": "inspired by sunsets",
+      "description": "Grenadine red through orange juice gold to a pale citrus highlight, inspired by a Tequila Sunrise drink.",
+      "source": null,
+      "anchors": [
+        "#080103",
+        "#490817",
+        "#a41929",
+        "#e94725",
+        "#fa8b24",
+        "#ffd354",
+        "#fff4bb"
+      ],
+      "images": {
+        "current": "current/38-tequila-sunrise.png",
+        "asinh": "asinh/38-tequila-sunrise.png"
+      },
+      "thumbnails": {
+        "current": "thumbs/current/38-tequila-sunrise.webp",
+        "asinh": "thumbs/asinh/38-tequila-sunrise.webp"
+      },
+      "ramp": "ramps/38-tequila-sunrise.png",
+      "lut": "luts/38-tequila-sunrise.csv"
     }
   ]
 }
