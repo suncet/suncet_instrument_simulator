@@ -1,7 +1,7 @@
 {
   "study_id": "suncet-frame300-v1",
-  "input": "config_default_OBS_2023-01-14T17:00:00.000_300.fits",
-  "input_sha256": "82d51a512dc2dd6d22fcbd4f23661039fb2fdf2d073391d2760da3a4d75c7d87",
+  "input": "config_default_OBS_2023-01-14T17:00:00.000_300_level1_v2.0.0_provisional.fits",
+  "input_sha256": "2afdb801d191ffb6b8e8b07fe371473a3dbc8d5031705708ed480f060fa73235",
   "frame": 300,
   "shape": [
     750,
@@ -13,13 +13,13 @@
     "origin": "upper (current renderer)",
     "current": {
       "stretch": "fourth root",
-      "vmin": 0.08,
-      "vmax": 21.0
+      "vmin": 1.7919762601867981,
+      "vmax": 25.207767301143782
     },
     "asinh": {
-      "low": 110.51076277482674,
-      "high": 58706.859287917185,
-      "width": 1757.8904557542705,
+      "low": 10.311670037454533,
+      "high": 403773.23225207283,
+      "width": 12112.887617461061,
       "limits": "Frame 300 finite 1st/99.7th percentiles; shared by every option"
     }
   },
@@ -58,12 +58,12 @@
       "source": "inferno",
       "anchors": null,
       "images": {
-        "current": "current/01-current-inferno.png",
-        "asinh": "asinh/01-current-inferno.png"
+        "current": "current/01-current-inferno.png?v=c3ea1232ba26",
+        "asinh": "asinh/01-current-inferno.png?v=9fd3827df237"
       },
       "thumbnails": {
-        "current": "thumbs/current/01-current-inferno.webp",
-        "asinh": "thumbs/asinh/01-current-inferno.webp"
+        "current": "thumbs/current/01-current-inferno.webp?v=b88dc11c4923",
+        "asinh": "thumbs/asinh/01-current-inferno.webp?v=357d338a8353"
       },
       "ramp": "ramps/01-current-inferno.png",
       "lut": "luts/01-current-inferno.csv"
@@ -77,12 +77,12 @@
       "source": "sdoaia171",
       "anchors": null,
       "images": {
-        "current": "current/02-aia171-eui174.png",
-        "asinh": "asinh/02-aia171-eui174.png"
+        "current": "current/02-aia171-eui174.png?v=cbcd65544124",
+        "asinh": "asinh/02-aia171-eui174.png?v=afbd3076885c"
       },
       "thumbnails": {
-        "current": "thumbs/current/02-aia171-eui174.webp",
-        "asinh": "thumbs/asinh/02-aia171-eui174.webp"
+        "current": "thumbs/current/02-aia171-eui174.webp?v=2a141db24fc6",
+        "asinh": "thumbs/asinh/02-aia171-eui174.webp?v=28d39c0d9187"
       },
       "ramp": "ramps/02-aia171-eui174.png",
       "lut": "luts/02-aia171-eui174.csv"
@@ -96,12 +96,12 @@
       "source": "goes-rsuvi195",
       "anchors": null,
       "images": {
-        "current": "current/03-aia193-suvi195.png",
-        "asinh": "asinh/03-aia193-suvi195.png"
+        "current": "current/03-aia193-suvi195.png?v=32b2ce5700ba",
+        "asinh": "asinh/03-aia193-suvi195.png?v=6c41851385ac"
       },
       "thumbnails": {
-        "current": "thumbs/current/03-aia193-suvi195.webp",
-        "asinh": "thumbs/asinh/03-aia193-suvi195.webp"
+        "current": "thumbs/current/03-aia193-suvi195.webp?v=6ea18a92caba",
+        "asinh": "thumbs/asinh/03-aia193-suvi195.webp?v=341e00c5e87c"
       },
       "ramp": "ramps/03-aia193-suvi195.png",
       "lut": "luts/03-aia193-suvi195.csv"
@@ -115,12 +115,12 @@
       "source": "sdoaia211",
       "anchors": null,
       "images": {
-        "current": "current/04-aia211.png",
-        "asinh": "asinh/04-aia211.png"
+        "current": "current/04-aia211.png?v=b5fe2e0e8fe0",
+        "asinh": "asinh/04-aia211.png?v=be151b49c72e"
       },
       "thumbnails": {
-        "current": "thumbs/current/04-aia211.webp",
-        "asinh": "thumbs/asinh/04-aia211.webp"
+        "current": "thumbs/current/04-aia211.webp?v=c4f11bf707e3",
+        "asinh": "thumbs/asinh/04-aia211.webp?v=88fde9a8e6d7"
       },
       "ramp": "ramps/04-aia211.png",
       "lut": "luts/04-aia211.csv"
@@ -134,12 +134,12 @@
       "source": "goes-rsuvi284",
       "anchors": null,
       "images": {
-        "current": "current/05-aia335-suvi284.png",
-        "asinh": "asinh/05-aia335-suvi284.png"
+        "current": "current/05-aia335-suvi284.png?v=3bb2f7298d45",
+        "asinh": "asinh/05-aia335-suvi284.png?v=fccddae9f7ef"
       },
       "thumbnails": {
-        "current": "thumbs/current/05-aia335-suvi284.webp",
-        "asinh": "thumbs/asinh/05-aia335-suvi284.webp"
+        "current": "thumbs/current/05-aia335-suvi284.webp?v=1a500556b34f",
+        "asinh": "thumbs/asinh/05-aia335-suvi284.webp?v=ae5aa06984b9"
       },
       "ramp": "ramps/05-aia335-suvi284.png",
       "lut": "luts/05-aia335-suvi284.csv"
@@ -153,12 +153,12 @@
       "source": "solar orbiterfsi304",
       "anchors": null,
       "images": {
-        "current": "current/06-aia304-eui304.png",
-        "asinh": "asinh/06-aia304-eui304.png"
+        "current": "current/06-aia304-eui304.png?v=babe24cc0eee",
+        "asinh": "asinh/06-aia304-eui304.png?v=bcda10388ebe"
       },
       "thumbnails": {
-        "current": "thumbs/current/06-aia304-eui304.webp",
-        "asinh": "thumbs/asinh/06-aia304-eui304.webp"
+        "current": "thumbs/current/06-aia304-eui304.webp?v=4e1dd9668f55",
+        "asinh": "thumbs/asinh/06-aia304-eui304.webp?v=124c06fc54d0"
       },
       "ramp": "ramps/06-aia304-eui304.png",
       "lut": "luts/06-aia304-eui304.csv"
@@ -172,12 +172,12 @@
       "source": "goes-rsuvi131",
       "anchors": null,
       "images": {
-        "current": "current/07-suvi131.png",
-        "asinh": "asinh/07-suvi131.png"
+        "current": "current/07-suvi131.png?v=ae83acd390af",
+        "asinh": "asinh/07-suvi131.png?v=b7032ac31c65"
       },
       "thumbnails": {
-        "current": "thumbs/current/07-suvi131.webp",
-        "asinh": "thumbs/asinh/07-suvi131.webp"
+        "current": "thumbs/current/07-suvi131.webp?v=5d55f5aafd21",
+        "asinh": "thumbs/asinh/07-suvi131.webp?v=4d00714ca67b"
       },
       "ramp": "ramps/07-suvi131.png",
       "lut": "luts/07-suvi131.csv"
@@ -191,12 +191,12 @@
       "source": "goes-rsuvi94",
       "anchors": null,
       "images": {
-        "current": "current/08-suvi94.png",
-        "asinh": "asinh/08-suvi94.png"
+        "current": "current/08-suvi94.png?v=9c236c4f7f9a",
+        "asinh": "asinh/08-suvi94.png?v=e0cf0e02b46a"
       },
       "thumbnails": {
-        "current": "thumbs/current/08-suvi94.webp",
-        "asinh": "thumbs/asinh/08-suvi94.webp"
+        "current": "thumbs/current/08-suvi94.webp?v=d4b5abc24c5c",
+        "asinh": "thumbs/asinh/08-suvi94.webp?v=c9a17c761373"
       },
       "ramp": "ramps/08-suvi94.png",
       "lut": "luts/08-suvi94.csv"
@@ -210,12 +210,12 @@
       "source": "sohoeit171",
       "anchors": null,
       "images": {
-        "current": "current/09-eit171.png",
-        "asinh": "asinh/09-eit171.png"
+        "current": "current/09-eit171.png?v=8ce7d271be98",
+        "asinh": "asinh/09-eit171.png?v=401765e35d82"
       },
       "thumbnails": {
-        "current": "thumbs/current/09-eit171.webp",
-        "asinh": "thumbs/asinh/09-eit171.webp"
+        "current": "thumbs/current/09-eit171.webp?v=1eea52fafa06",
+        "asinh": "thumbs/asinh/09-eit171.webp?v=3110695dd1d9"
       },
       "ramp": "ramps/09-eit171.png",
       "lut": "luts/09-eit171.csv"
@@ -229,12 +229,12 @@
       "source": "sohoeit195",
       "anchors": null,
       "images": {
-        "current": "current/10-eit195.png",
-        "asinh": "asinh/10-eit195.png"
+        "current": "current/10-eit195.png?v=c5efd12e67b1",
+        "asinh": "asinh/10-eit195.png?v=0ad0b3f38ec6"
       },
       "thumbnails": {
-        "current": "thumbs/current/10-eit195.webp",
-        "asinh": "thumbs/asinh/10-eit195.webp"
+        "current": "thumbs/current/10-eit195.webp?v=df8a46420ba5",
+        "asinh": "thumbs/asinh/10-eit195.webp?v=a21a91d6d1fb"
       },
       "ramp": "ramps/10-eit195.png",
       "lut": "luts/10-eit195.csv"
@@ -248,12 +248,12 @@
       "source": "sohoeit284",
       "anchors": null,
       "images": {
-        "current": "current/11-eit284.png",
-        "asinh": "asinh/11-eit284.png"
+        "current": "current/11-eit284.png?v=35431dcda751",
+        "asinh": "asinh/11-eit284.png?v=4e862f97d85f"
       },
       "thumbnails": {
-        "current": "thumbs/current/11-eit284.webp",
-        "asinh": "thumbs/asinh/11-eit284.webp"
+        "current": "thumbs/current/11-eit284.webp?v=dfd4cbfe4828",
+        "asinh": "thumbs/asinh/11-eit284.webp?v=07d5de920052"
       },
       "ramp": "ramps/11-eit284.png",
       "lut": "luts/11-eit284.csv"
@@ -275,12 +275,12 @@
         "#fff7de"
       ],
       "images": {
-        "current": "current/12-eui-amber.png",
-        "asinh": "asinh/12-eui-amber.png"
+        "current": "current/12-eui-amber.png?v=41eae316c083",
+        "asinh": "asinh/12-eui-amber.png?v=3eee4eda236f"
       },
       "thumbnails": {
-        "current": "thumbs/current/12-eui-amber.webp",
-        "asinh": "thumbs/asinh/12-eui-amber.webp"
+        "current": "thumbs/current/12-eui-amber.webp?v=52cd1904b3ff",
+        "asinh": "thumbs/asinh/12-eui-amber.webp?v=ea97b3d4f6f7"
       },
       "ramp": "ramps/12-eui-amber.png",
       "lut": "luts/12-eui-amber.csv"
@@ -302,12 +302,12 @@
         "#fff2c9"
       ],
       "images": {
-        "current": "current/13-sunset-gold.png",
-        "asinh": "asinh/13-sunset-gold.png"
+        "current": "current/13-sunset-gold.png?v=76e5d43157ed",
+        "asinh": "asinh/13-sunset-gold.png?v=b9d6edcd146f"
       },
       "thumbnails": {
-        "current": "thumbs/current/13-sunset-gold.webp",
-        "asinh": "thumbs/asinh/13-sunset-gold.webp"
+        "current": "thumbs/current/13-sunset-gold.webp?v=f535dca433a6",
+        "asinh": "thumbs/asinh/13-sunset-gold.webp?v=e42568f4571a"
       },
       "ramp": "ramps/13-sunset-gold.png",
       "lut": "luts/13-sunset-gold.csv"
@@ -329,12 +329,12 @@
         "#fff0da"
       ],
       "images": {
-        "current": "current/14-sunset-rose.png",
-        "asinh": "asinh/14-sunset-rose.png"
+        "current": "current/14-sunset-rose.png?v=3ad076bd0f20",
+        "asinh": "asinh/14-sunset-rose.png?v=bfaea43eef29"
       },
       "thumbnails": {
-        "current": "thumbs/current/14-sunset-rose.webp",
-        "asinh": "thumbs/asinh/14-sunset-rose.webp"
+        "current": "thumbs/current/14-sunset-rose.webp?v=5e069dbd6f5c",
+        "asinh": "thumbs/asinh/14-sunset-rose.webp?v=e733b70ed598"
       },
       "ramp": "ramps/14-sunset-rose.png",
       "lut": "luts/14-sunset-rose.csv"
@@ -356,12 +356,12 @@
         "#fff4d5"
       ],
       "images": {
-        "current": "current/15-sunset-twilight.png",
-        "asinh": "asinh/15-sunset-twilight.png"
+        "current": "current/15-sunset-twilight.png?v=439c1ba2f691",
+        "asinh": "asinh/15-sunset-twilight.png?v=cedbd33df146"
       },
       "thumbnails": {
-        "current": "thumbs/current/15-sunset-twilight.webp",
-        "asinh": "thumbs/asinh/15-sunset-twilight.webp"
+        "current": "thumbs/current/15-sunset-twilight.webp?v=c19dc5d01624",
+        "asinh": "thumbs/asinh/15-sunset-twilight.webp?v=3d049d13e8bd"
       },
       "ramp": "ramps/15-sunset-twilight.png",
       "lut": "luts/15-sunset-twilight.csv"
@@ -383,12 +383,12 @@
         "#ffe8b0"
       ],
       "images": {
-        "current": "current/16-sunset-ember.png",
-        "asinh": "asinh/16-sunset-ember.png"
+        "current": "current/16-sunset-ember.png?v=a1f805f0593b",
+        "asinh": "asinh/16-sunset-ember.png?v=97bba9ce5099"
       },
       "thumbnails": {
-        "current": "thumbs/current/16-sunset-ember.webp",
-        "asinh": "thumbs/asinh/16-sunset-ember.webp"
+        "current": "thumbs/current/16-sunset-ember.webp?v=63d95ba7b85c",
+        "asinh": "thumbs/asinh/16-sunset-ember.webp?v=1c3410e8af86"
       },
       "ramp": "ramps/16-sunset-ember.png",
       "lut": "luts/16-sunset-ember.csv"
@@ -410,12 +410,12 @@
         "#fff4dc"
       ],
       "images": {
-        "current": "current/17-sunset-coral.png",
-        "asinh": "asinh/17-sunset-coral.png"
+        "current": "current/17-sunset-coral.png?v=e740757cf8d2",
+        "asinh": "asinh/17-sunset-coral.png?v=d1724830a78c"
       },
       "thumbnails": {
-        "current": "thumbs/current/17-sunset-coral.webp",
-        "asinh": "thumbs/asinh/17-sunset-coral.webp"
+        "current": "thumbs/current/17-sunset-coral.webp?v=b88f86e3ddb8",
+        "asinh": "thumbs/asinh/17-sunset-coral.webp?v=4a38d9e15113"
       },
       "ramp": "ramps/17-sunset-coral.png",
       "lut": "luts/17-sunset-coral.csv"
@@ -437,12 +437,12 @@
         "#faf4ff"
       ],
       "images": {
-        "current": "current/18-euv-violet.png",
-        "asinh": "asinh/18-euv-violet.png"
+        "current": "current/18-euv-violet.png?v=a7c8babb338e",
+        "asinh": "asinh/18-euv-violet.png?v=591643a57501"
       },
       "thumbnails": {
-        "current": "thumbs/current/18-euv-violet.webp",
-        "asinh": "thumbs/asinh/18-euv-violet.webp"
+        "current": "thumbs/current/18-euv-violet.webp?v=bcdbe534faba",
+        "asinh": "thumbs/asinh/18-euv-violet.webp?v=f9c33b5fd1e1"
       },
       "ramp": "ramps/18-euv-violet.png",
       "lut": "luts/18-euv-violet.csv"
@@ -464,12 +464,12 @@
         "#f8edf9"
       ],
       "images": {
-        "current": "current/19-euv-amethyst.png",
-        "asinh": "asinh/19-euv-amethyst.png"
+        "current": "current/19-euv-amethyst.png?v=4cfd7a2981c2",
+        "asinh": "asinh/19-euv-amethyst.png?v=b3c14d01ca35"
       },
       "thumbnails": {
-        "current": "thumbs/current/19-euv-amethyst.webp",
-        "asinh": "thumbs/asinh/19-euv-amethyst.webp"
+        "current": "thumbs/current/19-euv-amethyst.webp?v=3356461e9e09",
+        "asinh": "thumbs/asinh/19-euv-amethyst.webp?v=d6294120aa9a"
       },
       "ramp": "ramps/19-euv-amethyst.png",
       "lut": "luts/19-euv-amethyst.csv"
@@ -491,12 +491,12 @@
         "#efffff"
       ],
       "images": {
-        "current": "current/20-euv-ice.png",
-        "asinh": "asinh/20-euv-ice.png"
+        "current": "current/20-euv-ice.png?v=c5a559dfd2f5",
+        "asinh": "asinh/20-euv-ice.png?v=aadcfde299a4"
       },
       "thumbnails": {
-        "current": "thumbs/current/20-euv-ice.webp",
-        "asinh": "thumbs/asinh/20-euv-ice.webp"
+        "current": "thumbs/current/20-euv-ice.webp?v=0f3558c31a56",
+        "asinh": "thumbs/asinh/20-euv-ice.webp?v=004212dc47f2"
       },
       "ramp": "ramps/20-euv-ice.png",
       "lut": "luts/20-euv-ice.csv"
@@ -518,12 +518,12 @@
         "#fff2fc"
       ],
       "images": {
-        "current": "current/21-euv-lilac.png",
-        "asinh": "asinh/21-euv-lilac.png"
+        "current": "current/21-euv-lilac.png?v=054fd79bae92",
+        "asinh": "asinh/21-euv-lilac.png?v=19eef511e083"
       },
       "thumbnails": {
-        "current": "thumbs/current/21-euv-lilac.webp",
-        "asinh": "thumbs/asinh/21-euv-lilac.webp"
+        "current": "thumbs/current/21-euv-lilac.webp?v=32239950c626",
+        "asinh": "thumbs/asinh/21-euv-lilac.webp?v=c816eb2448af"
       },
       "ramp": "ramps/21-euv-lilac.png",
       "lut": "luts/21-euv-lilac.csv"
@@ -545,12 +545,12 @@
         "#fff0f9"
       ],
       "images": {
-        "current": "current/22-euv-magenta.png",
-        "asinh": "asinh/22-euv-magenta.png"
+        "current": "current/22-euv-magenta.png?v=78f45e5ba46b",
+        "asinh": "asinh/22-euv-magenta.png?v=20e2e86c9e36"
       },
       "thumbnails": {
-        "current": "thumbs/current/22-euv-magenta.webp",
-        "asinh": "thumbs/asinh/22-euv-magenta.webp"
+        "current": "thumbs/current/22-euv-magenta.webp?v=87d65ec76984",
+        "asinh": "thumbs/asinh/22-euv-magenta.webp?v=2de6a871eac2"
       },
       "ramp": "ramps/22-euv-magenta.png",
       "lut": "luts/22-euv-magenta.csv"
@@ -572,12 +572,12 @@
         "#fff8dd"
       ],
       "images": {
-        "current": "current/23-suncet-brand-fire.png",
-        "asinh": "asinh/23-suncet-brand-fire.png"
+        "current": "current/23-suncet-brand-fire.png?v=63b68ffa529c",
+        "asinh": "asinh/23-suncet-brand-fire.png?v=2e5b09de16af"
       },
       "thumbnails": {
-        "current": "thumbs/current/23-suncet-brand-fire.webp",
-        "asinh": "thumbs/asinh/23-suncet-brand-fire.webp"
+        "current": "thumbs/current/23-suncet-brand-fire.webp?v=f5e2859727c0",
+        "asinh": "thumbs/asinh/23-suncet-brand-fire.webp?v=3c1400f055b7"
       },
       "ramp": "ramps/23-suncet-brand-fire.png",
       "lut": "luts/23-suncet-brand-fire.csv"
@@ -620,12 +620,12 @@
         ]
       ],
       "images": {
-        "current": "current/25-suncet-triad.png",
-        "asinh": "asinh/25-suncet-triad.png"
+        "current": "current/25-suncet-triad.png?v=49fadddda583",
+        "asinh": "asinh/25-suncet-triad.png?v=430a7548ae14"
       },
       "thumbnails": {
-        "current": "thumbs/current/25-suncet-triad.webp",
-        "asinh": "thumbs/asinh/25-suncet-triad.webp"
+        "current": "thumbs/current/25-suncet-triad.webp?v=d29428a0f6df",
+        "asinh": "thumbs/asinh/25-suncet-triad.webp?v=1bdf19bb5bbb"
       },
       "ramp": "ramps/25-suncet-triad.png",
       "lut": "luts/25-suncet-triad.csv"
@@ -647,12 +647,12 @@
         "#fbdcde"
       ],
       "images": {
-        "current": "current/26-poster-rose.png",
-        "asinh": "asinh/26-poster-rose.png"
+        "current": "current/26-poster-rose.png?v=d1dcc820b817",
+        "asinh": "asinh/26-poster-rose.png?v=9673676a1652"
       },
       "thumbnails": {
-        "current": "thumbs/current/26-poster-rose.webp",
-        "asinh": "thumbs/asinh/26-poster-rose.webp"
+        "current": "thumbs/current/26-poster-rose.webp?v=856c9f1ec0bb",
+        "asinh": "thumbs/asinh/26-poster-rose.webp?v=6c3b72c8b834"
       },
       "ramp": "ramps/26-poster-rose.png",
       "lut": "luts/26-poster-rose.csv"
@@ -674,12 +674,12 @@
         "#fbdcde"
       ],
       "images": {
-        "current": "current/27-poster-indigo.png",
-        "asinh": "asinh/27-poster-indigo.png"
+        "current": "current/27-poster-indigo.png?v=739ad234a757",
+        "asinh": "asinh/27-poster-indigo.png?v=aa3b30708f10"
       },
       "thumbnails": {
-        "current": "thumbs/current/27-poster-indigo.webp",
-        "asinh": "thumbs/asinh/27-poster-indigo.webp"
+        "current": "thumbs/current/27-poster-indigo.webp?v=aabf8946171b",
+        "asinh": "thumbs/asinh/27-poster-indigo.webp?v=a00ec113a00b"
       },
       "ramp": "ramps/27-poster-indigo.png",
       "lut": "luts/27-poster-indigo.csv"
@@ -693,12 +693,12 @@
       "source": "magma",
       "anchors": null,
       "images": {
-        "current": "current/28-magma.png",
-        "asinh": "asinh/28-magma.png"
+        "current": "current/28-magma.png?v=2cc26dcab9eb",
+        "asinh": "asinh/28-magma.png?v=90c2b70bfdde"
       },
       "thumbnails": {
-        "current": "thumbs/current/28-magma.webp",
-        "asinh": "thumbs/asinh/28-magma.webp"
+        "current": "thumbs/current/28-magma.webp?v=8cf8e430a51c",
+        "asinh": "thumbs/asinh/28-magma.webp?v=363c063f76a5"
       },
       "ramp": "ramps/28-magma.png",
       "lut": "luts/28-magma.csv"
@@ -712,12 +712,12 @@
       "source": "viridis",
       "anchors": null,
       "images": {
-        "current": "current/30-viridis.png",
-        "asinh": "asinh/30-viridis.png"
+        "current": "current/30-viridis.png?v=1ad3c6ee9be3",
+        "asinh": "asinh/30-viridis.png?v=ab75634117c3"
       },
       "thumbnails": {
-        "current": "thumbs/current/30-viridis.webp",
-        "asinh": "thumbs/asinh/30-viridis.webp"
+        "current": "thumbs/current/30-viridis.webp?v=c32b91acac0b",
+        "asinh": "thumbs/asinh/30-viridis.webp?v=1a4a7a3373a6"
       },
       "ramp": "ramps/30-viridis.png",
       "lut": "luts/30-viridis.csv"
@@ -731,12 +731,12 @@
       "source": "gray",
       "anchors": null,
       "images": {
-        "current": "current/31-gray.png",
-        "asinh": "asinh/31-gray.png"
+        "current": "current/31-gray.png?v=6c1c381dc414",
+        "asinh": "asinh/31-gray.png?v=79c8971ec6ac"
       },
       "thumbnails": {
-        "current": "thumbs/current/31-gray.webp",
-        "asinh": "thumbs/asinh/31-gray.webp"
+        "current": "thumbs/current/31-gray.webp?v=b8e2f409dbc9",
+        "asinh": "thumbs/asinh/31-gray.webp?v=e7d0ec61a168"
       },
       "ramp": "ramps/31-gray.png",
       "lut": "luts/31-gray.csv"
@@ -758,12 +758,12 @@
         "#f0fff2"
       ],
       "images": {
-        "current": "current/32-coronal-ice.png",
-        "asinh": "asinh/32-coronal-ice.png"
+        "current": "current/32-coronal-ice.png?v=cb169b7202fd",
+        "asinh": "asinh/32-coronal-ice.png?v=66e3803829d5"
       },
       "thumbnails": {
-        "current": "thumbs/current/32-coronal-ice.webp",
-        "asinh": "thumbs/asinh/32-coronal-ice.webp"
+        "current": "thumbs/current/32-coronal-ice.webp?v=0f1af081d837",
+        "asinh": "thumbs/asinh/32-coronal-ice.webp?v=2158d989ea47"
       },
       "ramp": "ramps/32-coronal-ice.png",
       "lut": "luts/32-coronal-ice.csv"
@@ -810,12 +810,12 @@
         ]
       ],
       "images": {
-        "current": "current/33-poster-blue-rose.png",
-        "asinh": "asinh/33-poster-blue-rose.png"
+        "current": "current/33-poster-blue-rose.png?v=97b833ef69d1",
+        "asinh": "asinh/33-poster-blue-rose.png?v=82e739147a2e"
       },
       "thumbnails": {
-        "current": "thumbs/current/33-poster-blue-rose.webp",
-        "asinh": "thumbs/asinh/33-poster-blue-rose.webp"
+        "current": "thumbs/current/33-poster-blue-rose.webp?v=2e0bce39302b",
+        "asinh": "thumbs/asinh/33-poster-blue-rose.webp?v=3b947db5ed36"
       },
       "ramp": "ramps/33-poster-blue-rose.png",
       "lut": "luts/33-poster-blue-rose.csv"
@@ -862,12 +862,12 @@
         ]
       ],
       "images": {
-        "current": "current/34-poster-blue-lilac.png",
-        "asinh": "asinh/34-poster-blue-lilac.png"
+        "current": "current/34-poster-blue-lilac.png?v=a44a0d072909",
+        "asinh": "asinh/34-poster-blue-lilac.png?v=b1a59e617223"
       },
       "thumbnails": {
-        "current": "thumbs/current/34-poster-blue-lilac.webp",
-        "asinh": "thumbs/asinh/34-poster-blue-lilac.webp"
+        "current": "thumbs/current/34-poster-blue-lilac.webp?v=94e0d632eb66",
+        "asinh": "thumbs/asinh/34-poster-blue-lilac.webp?v=772b1bbc0527"
       },
       "ramp": "ramps/34-poster-blue-lilac.png",
       "lut": "luts/34-poster-blue-lilac.csv"
@@ -889,12 +889,12 @@
         "#fff5d1"
       ],
       "images": {
-        "current": "current/35-aurora-mint.png",
-        "asinh": "asinh/35-aurora-mint.png"
+        "current": "current/35-aurora-mint.png?v=662d85e11426",
+        "asinh": "asinh/35-aurora-mint.png?v=083fb3bf1c3d"
       },
       "thumbnails": {
-        "current": "thumbs/current/35-aurora-mint.webp",
-        "asinh": "thumbs/asinh/35-aurora-mint.webp"
+        "current": "thumbs/current/35-aurora-mint.webp?v=938576bb495c",
+        "asinh": "thumbs/asinh/35-aurora-mint.webp?v=80a78d9acd5c"
       },
       "ramp": "ramps/35-aurora-mint.png",
       "lut": "luts/35-aurora-mint.csv"
@@ -916,12 +916,12 @@
         "#fff8f0"
       ],
       "images": {
-        "current": "current/36-pearl-opal.png",
-        "asinh": "asinh/36-pearl-opal.png"
+        "current": "current/36-pearl-opal.png?v=bd9d0b8986fb",
+        "asinh": "asinh/36-pearl-opal.png?v=18bf80c267eb"
       },
       "thumbnails": {
-        "current": "thumbs/current/36-pearl-opal.webp",
-        "asinh": "thumbs/asinh/36-pearl-opal.webp"
+        "current": "thumbs/current/36-pearl-opal.webp?v=00541a15b6ec",
+        "asinh": "thumbs/asinh/36-pearl-opal.webp?v=8a2a9ccfb907"
       },
       "ramp": "ramps/36-pearl-opal.png",
       "lut": "luts/36-pearl-opal.csv"
@@ -943,12 +943,12 @@
         "#fff1cd"
       ],
       "images": {
-        "current": "current/37-copper-teal.png",
-        "asinh": "asinh/37-copper-teal.png"
+        "current": "current/37-copper-teal.png?v=f5123bfe88bd",
+        "asinh": "asinh/37-copper-teal.png?v=d6367e4144b5"
       },
       "thumbnails": {
-        "current": "thumbs/current/37-copper-teal.webp",
-        "asinh": "thumbs/asinh/37-copper-teal.webp"
+        "current": "thumbs/current/37-copper-teal.webp?v=853fd0059d3a",
+        "asinh": "thumbs/asinh/37-copper-teal.webp?v=834c42199103"
       },
       "ramp": "ramps/37-copper-teal.png",
       "lut": "luts/37-copper-teal.csv"
@@ -970,12 +970,12 @@
         "#fff4bb"
       ],
       "images": {
-        "current": "current/38-tequila-sunrise.png",
-        "asinh": "asinh/38-tequila-sunrise.png"
+        "current": "current/38-tequila-sunrise.png?v=c94eec09e665",
+        "asinh": "asinh/38-tequila-sunrise.png?v=24de5e313cfc"
       },
       "thumbnails": {
-        "current": "thumbs/current/38-tequila-sunrise.webp",
-        "asinh": "thumbs/asinh/38-tequila-sunrise.webp"
+        "current": "thumbs/current/38-tequila-sunrise.webp?v=58f23ef61b04",
+        "asinh": "thumbs/asinh/38-tequila-sunrise.webp?v=cb6c2e99393d"
       },
       "ramp": "ramps/38-tequila-sunrise.png",
       "lut": "luts/38-tequila-sunrise.csv"
@@ -989,12 +989,12 @@
       "source": "euvi171",
       "anchors": null,
       "images": {
-        "current": "current/39-euvi171.png",
-        "asinh": "asinh/39-euvi171.png"
+        "current": "current/39-euvi171.png?v=afac882eebbc",
+        "asinh": "asinh/39-euvi171.png?v=d51e7e4371fb"
       },
       "thumbnails": {
-        "current": "thumbs/current/39-euvi171.webp",
-        "asinh": "thumbs/asinh/39-euvi171.webp"
+        "current": "thumbs/current/39-euvi171.webp?v=c0f6832ed5cf",
+        "asinh": "thumbs/asinh/39-euvi171.webp?v=a08e3d7d9cd4"
       },
       "ramp": "ramps/39-euvi171.png",
       "lut": "luts/39-euvi171.csv"
@@ -1008,12 +1008,12 @@
       "source": "euvi195",
       "anchors": null,
       "images": {
-        "current": "current/40-euvi195.png",
-        "asinh": "asinh/40-euvi195.png"
+        "current": "current/40-euvi195.png?v=0b32fe927971",
+        "asinh": "asinh/40-euvi195.png?v=88d5ebbdd092"
       },
       "thumbnails": {
-        "current": "thumbs/current/40-euvi195.webp",
-        "asinh": "thumbs/asinh/40-euvi195.webp"
+        "current": "thumbs/current/40-euvi195.webp?v=9d31ce0aeeaf",
+        "asinh": "thumbs/asinh/40-euvi195.webp?v=33f6024631fb"
       },
       "ramp": "ramps/40-euvi195.png",
       "lut": "luts/40-euvi195.csv"
@@ -1027,12 +1027,12 @@
       "source": "euvi284",
       "anchors": null,
       "images": {
-        "current": "current/41-euvi284.png",
-        "asinh": "asinh/41-euvi284.png"
+        "current": "current/41-euvi284.png?v=1c218d58b8a6",
+        "asinh": "asinh/41-euvi284.png?v=359e611353e6"
       },
       "thumbnails": {
-        "current": "thumbs/current/41-euvi284.webp",
-        "asinh": "thumbs/asinh/41-euvi284.webp"
+        "current": "thumbs/current/41-euvi284.webp?v=09c8685492e0",
+        "asinh": "thumbs/asinh/41-euvi284.webp?v=ac7e250c3d2c"
       },
       "ramp": "ramps/41-euvi284.png",
       "lut": "luts/41-euvi284.csv"
@@ -1046,15 +1046,38 @@
       "source": "euvi304",
       "anchors": null,
       "images": {
-        "current": "current/42-euvi304.png",
-        "asinh": "asinh/42-euvi304.png"
+        "current": "current/42-euvi304.png?v=66a481b99ca0",
+        "asinh": "asinh/42-euvi304.png?v=bddab5d86a87"
       },
       "thumbnails": {
-        "current": "thumbs/current/42-euvi304.webp",
-        "asinh": "thumbs/asinh/42-euvi304.webp"
+        "current": "thumbs/current/42-euvi304.webp?v=8d438ad00650",
+        "asinh": "thumbs/asinh/42-euvi304.webp?v=d4d99ed08495"
       },
       "ramp": "ramps/42-euvi304.png",
       "lut": "luts/42-euvi304.csv"
     }
-  ]
+  ],
+  "processing": {
+    "exposure_normalized": true,
+    "fits_metadata": {
+      "LEVEL": 1.0,
+      "BUNIT": "DN/s",
+      "PROCSTAT": "PROVISIONAL",
+      "EXP_MASK": "SIMULATOR_CONFIG_CIRCLE",
+      "EFFEXPI": 0.07,
+      "EFFEXPO": 11.25,
+      "INTTIMEI": 0.035,
+      "INTTIMEO": 15.0,
+      "NSTACKI": 9,
+      "NSTACKO": 4,
+      "STKNORMI": 4,
+      "STKNORMO": 4
+    },
+    "note": "Exposure normalization only; not a complete Level 1 calibration. Saturated source pixels remain unrecoverable."
+  },
+  "overviews": {
+    "current": "overview-current.png?v=edf5c8e1e043",
+    "asinh": "overview-asinh.png?v=0343df5d8e07"
+  },
+  "social_image": "social-preview-v1.png?v=cc7846a9edd3"
 }

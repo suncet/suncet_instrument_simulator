@@ -66,7 +66,7 @@
     $('count').textContent = `${visible.length} / ${items.length} color tables`;
     $('favoritesCount').textContent = favorites.size;
     $('empty').hidden = visible.length > 0;
-    $('overview').href = `overview-${stretch}.png`;
+    $('overview').href = study.overviews?.[stretch] || `overview-${stretch}.png`;
     for (const item of visible) {
       const figure = element('figure', 'option');
       const button = element('button', 'image-button');

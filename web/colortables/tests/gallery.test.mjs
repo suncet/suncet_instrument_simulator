@@ -11,6 +11,19 @@ const site = path.resolve(fileURLToPath(new URL('../../../docs/colortables/', im
 const manifest = JSON.parse(await readFile(path.join(site, 'manifest.json')));
 const screenshotDir = process.env.GALLERY_SCREENSHOTS;
 
+test('normalized assets have content versions without changing voting identities', async () => {
+  assert.equal(manifest.study_id,'suncet-frame300-v1');
+  assert.equal(manifest.processing.exposure_normalized,true);
+  assert.equal(manifest.processing.fits_metadata.EFFEXPI,0.07);
+  assert.equal(manifest.processing.fits_metadata.EFFEXPO,11.25);
+  for (const relative of [manifest.social_image,...Object.values(manifest.overviews),
+    ...manifest.options.flatMap(item=>[...Object.values(item.images),...Object.values(item.thumbnails)])]) {
+    const [filename,query]=relative.split('?');
+    const hash=createHash('sha256').update(await readFile(path.join(site,filename))).digest('hex').slice(0,12);
+    assert.equal(query,`v=${hash}`);
+  }
+});
+
 test('gallery works locally and public votes persist, aggregate, undo, export, and recover', async () => {
   assert.equal(await readFile(path.join(site,'gallery.js'),'utf8'), await readFile(new URL('../gallery.js', import.meta.url),'utf8'));
   const scriptVersion=createHash('sha256').update(await readFile(path.join(site,'gallery.js'))).digest('hex').slice(0,12);
@@ -72,7 +85,7 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Local preview'));
     assert.equal(await page.locator('.option').count(),40);
     assert.equal(await page.title(),'SunCET | Color Voting');
-    const socialImage='https://suncet.github.io/suncet_instrument_simulator/social-preview-v1.png';
+    const socialImage=`https://suncet.github.io/suncet_instrument_simulator/${manifest.social_image}`;
     assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'),socialImage);
     assert.equal(await page.locator('meta[name="twitter:image"]').getAttribute('content'),socialImage);
     assert.equal(await page.locator('meta[name="twitter:card"]').getAttribute('content'),'summary_large_image');

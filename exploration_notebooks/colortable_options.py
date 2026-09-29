@@ -181,18 +181,30 @@ def contact_sheet(items, output, stretch, *, columns=4, thumb_width=400, title=N
     return sheet
 
 
+def display_arrays(data, header):
+    """Keep legacy DN rendering, but derive shared limits for normalized DN/s."""
+    normalized = float(header.get("LEVEL", 0)) == 1 and header.get("BUNIT") == "DN/s"
+    low, high, width = make_movie._asinh_limits([data])
+    root_limits = (max(low, 0.) ** .25, high ** .25) if normalized else (.08, 21.)
+    return normalized, low, high, width, {
+        "current": (data ** .25, *root_limits),
+        "asinh": (np.arcsinh((data.astype(np.float64) - low) / width),
+                  0., float(np.arcsinh((high - low) / width))),
+    }
+
+
+def versioned_asset(output, relative):
+    digest = hashlib.sha256((output / relative).read_bytes()).hexdigest()[:12]
+    return f"{relative}?v={digest}"
+
+
 def render(fits_path, output, public_output=None, poster_path=None):
     output.mkdir(parents=True, exist_ok=True)
     for directory in ["current", "asinh", "luts", "ramps", "sheets", "thumbs/current", "thumbs/asinh"]:
         (output / directory).mkdir(parents=True, exist_ok=True)
     raw, header = fits.getdata(fits_path, header=True)
     data = make_movie.apply_radial_filter(make_movie.replace_negative_values(raw.copy()), 300)
-    low, high, width = make_movie._asinh_limits([data])
-    displays = {
-        "current": (data ** (1 / 4), .08, 21.),
-        "asinh": (np.arcsinh((data.astype(np.float64) - low) / width),
-                  0., float(np.arcsinh((high - low) / width))),
-    }
+    normalized, low, high, width, displays = display_arrays(data, header)
     items = options()
     if poster_path:
         (output / "references").mkdir(exist_ok=True)
@@ -211,7 +223,9 @@ def render(fits_path, output, public_output=None, poster_path=None):
             assert pixels.shape == (*data.shape, 4)
             assert np.all(pixels[..., 3] == 255)
             if item["id"] == 1:
-                reference = make_movie.plot_scaled_image(data, scale="1/4" if stretch == "current" else "asinh")
+                reference = (make_movie._render_frame(display, vmin=vmin, vmax=vmax, cmap="inferno")
+                             if normalized else make_movie.plot_scaled_image(
+                                 data, scale="1/4" if stretch == "current" else "asinh"))
                 np.testing.assert_array_equal(pixels, reference)
             item["images"][stretch] = relative
             thumbnail = f"thumbs/{stretch}/{name}.webp"
@@ -250,17 +264,34 @@ def render(fits_path, output, public_output=None, poster_path=None):
         "input": str(fits_path.resolve()), "input_sha256": hashlib.sha256(fits_path.read_bytes()).hexdigest(),
         "frame": 300, "shape": list(raw.shape), "date_obs": header.get("DATE-OBS"),
         "rendering": {"radial_filter_sigma_pixels": 300, "origin": "upper (current renderer)",
-                      "current": {"stretch": "fourth root", "vmin": .08, "vmax": 21.},
+                      "current": {"stretch": "fourth root", "vmin": displays["current"][1],
+                                  "vmax": displays["current"][2]},
                       "asinh": {"low": low, "high": high, "width": width,
                                 "limits": "Frame 300 finite 1st/99.7th percentiles; shared by every option"}},
         "versions": {"numpy": np.__version__, "matplotlib": matplotlib.__version__, "sunpy": sunpy.__version__},
         "brand_hex": BRAND, "poster_hex": POSTER, "mission_source": SUNPY_SOURCE,
         "options": [{k: v for k, v in item.items() if k != "cmap"} for item in items],
     }
+    manifest["processing"] = {
+        "exposure_normalized": normalized,
+        "fits_metadata": {key: header.get(key) for key in [
+            "LEVEL", "BUNIT", "PROCSTAT", "EXP_MASK", "EFFEXPI", "EFFEXPO",
+            "INTTIMEI", "INTTIMEO", "NSTACKI", "NSTACKO", "STKNORMI", "STKNORMO"]},
+        "note": ("Exposure normalization only; not a complete Level 1 calibration. "
+                 "Saturated source pixels remain unrecoverable." if normalized else "Legacy stored-DN composite."),
+    }
+    # Version URLs, not palette identities: existing favorites still refer to the same slugs.
+    for item in manifest["options"]:
+        for key in ["images", "thumbnails"]:
+            item[key] = {stretch: versioned_asset(output, relative)
+                         for stretch, relative in item[key].items()}
+    manifest["overviews"] = {stretch: versioned_asset(output, f"overview-{stretch}.png") for stretch in displays}
+    manifest["social_image"] = versioned_asset(output, "social-preview-v1.png")
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     web_source = Path(__file__).resolve().parents[1] / "web/colortables"
     script_version = hashlib.sha256((web_source / "gallery.js").read_bytes()).hexdigest()[:12]
     template = Path(__file__).with_name("colortable_gallery.html").read_text().replace("__GALLERY_VERSION__", script_version)
+    template = template.replace("__SOCIAL_IMAGE__", manifest["social_image"])
     (output / "index.html").write_text(template.replace("__STUDY_JSON__", json.dumps(manifest).replace("</", "<\\/")))
     shutil.copyfile(web_source / "gallery.js", output / "gallery.js")
     if not (output / "config.js").exists():
@@ -270,12 +301,15 @@ def render(fits_path, output, public_output=None, poster_path=None):
         "# SunCET color table study\n\n"
         f"Open index.html locally. There are {len(items)} distinct tables, each rendered at {raw.shape[1]} x {raw.shape[0]} pixels "
         "with two shared stretches. The gallery starts with the current PNG stretch.\n\n"
-        f"Input: `{fits_path.resolve()}`\n\n"
-        "The current reference is pixel-identical to make_movie.plot_scaled_image(scale='1/4'). "
+        f"Input: `{fits_path.resolve()}`\n\n" +
+        ("The input is the pipeline's provisional exposure-normalized Level 1 frame (DN/s). "
+         "Both stretches use shared frame 1st/99.7th-percentile limits. "
+         "Effective exposures are recorded in manifest.json; this is not full Level 1 calibration. "
+         if normalized else "The current reference is pixel-identical to make_movie.plot_scaled_image(scale='1/4'). ") +
         "All images use the existing negative-value handling, sigma=300 radial filter, orientation, "
         "and borderless renderer. The optional asinh images use the current renderer's single-frame "
         "1st/99.7th-percentile limits and 3% softening, fixed across all tables. "
-        "These are not movie-wide sampled limits. The dark ring comes from the input exposure composite.\n\n"
+        "These are not movie-wide sampled limits.\n\n"
         "Standard mission tables come from SunPy. Shared mission tables are combined into one option: "
         "AIA171/SUVI171/EUI174, AIA193/SUVI195, AIA335/SUVI284, AIA304/SUVI304/EUI304, "
         "AIA131/SUVI131, and AIA94/SUVI94. EUI-inspired amber is custom. "

@@ -78,8 +78,15 @@ npx playwright install chromium
 npm test
 ```
 
-Generation keeps the current Inferno reference pixel-identical, produces both
-stretches, and removes local filesystem paths from the public manifest and notes.
+The published gallery now uses the pipeline's provisional exposure-normalized
+Level 1 frame 300 (DN/s), with effective exposures of 0.07 s inside and 11.25 s
+outside. This includes stack rejection and bit-shift normalization, not the full
+Level 1 calibration chain. Both stretches use shared frame percentile limits.
+The manifest records the source checksum and exposure metadata. Legacy stored-DN
+inputs retain the original fixed fourth-root limits and pixel-identical reference.
+Generation removes local filesystem paths from public metadata and versions image
+URLs by content hash. Replacing images does not change the study ID or palette
+slugs and requires no database updates. Existing votes include earlier imagery.
 Configure `CHROME_EXECUTABLE` to use installed Chrome for browser tests. PGlite runs
 the SQL access-policy tests against disposable PostgreSQL with mocked Supabase Auth
 roles; no production votes are created by these tests.
