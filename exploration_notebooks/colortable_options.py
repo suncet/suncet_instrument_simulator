@@ -168,8 +168,8 @@ def contact_sheet(items, output, stretch, *, columns=4, thumb_width=400, title=N
                               108 + rows * tile_height + (rows - 1) * gap + 20), "#101113")
     draw = ImageDraw.Draw(sheet)
     draw.text((margin, 18), title or "SunCET / Frame 300 / Color table study", font=font(28), fill="white")
-    label = "Current PNG stretch: fourth root" if stretch == "current" else "Asinh: shared frame limits"
-    draw.text((margin, 60), label + "  |  Identical input, radial filter, and intensity limits", font=font(17), fill="#aeb5bd")
+    label = "Log10" if stretch == "current" else "Asinh / 200 DN/s softening"
+    draw.text((margin, 60), label + "  |  Shared limits / No radial filter", font=font(17), fill="#aeb5bd")
     for i, item in enumerate(items):
         x = margin + (i % columns) * (thumb_width + gap)
         y = 108 + (i // columns) * (tile_height + gap)
@@ -198,13 +198,28 @@ def versioned_asset(output, relative):
     return f"{relative}?v={digest}"
 
 
+def voting_display_arrays(data):
+    """Local experiment options 1 and 7, retaining the stable asset directory keys."""
+    low, high, width = 43.2777, float(np.max(data)), 200.
+    if not np.all(np.isfinite(data)) or high <= low:
+        raise ValueError("Voting input must be finite with maximum above 43.2777 DN/s")
+    return low, high, width, {
+        "current": (np.log10(np.maximum(data, low) / low) / np.log10(high / low), 0., 1.),
+        "asinh": (np.arcsinh(np.maximum(data - low, 0) / width) /
+                  np.arcsinh((high - low) / width), 0., 1.),
+    }
+
+
 def render(fits_path, output, public_output=None, poster_path=None):
     output.mkdir(parents=True, exist_ok=True)
     for directory in ["current", "asinh", "luts", "ramps", "sheets", "thumbs/current", "thumbs/asinh"]:
         (output / directory).mkdir(parents=True, exist_ok=True)
     raw, header = fits.getdata(fits_path, header=True)
-    data = make_movie.apply_radial_filter(make_movie.replace_negative_values(raw.copy()), 300)
-    normalized, low, high, width, displays = display_arrays(data, header)
+    if header.get("LEVEL") != 1 or header.get("BUNIT") != "DN/s":
+        raise ValueError("Voting gallery requires an exposure-normalized Level 1 DN/s FITS")
+    data = np.asarray(raw, dtype=np.float64)
+    normalized = True
+    low, high, width, displays = voting_display_arrays(data)
     items = options()
     if poster_path:
         (output / "references").mkdir(exist_ok=True)
@@ -223,9 +238,7 @@ def render(fits_path, output, public_output=None, poster_path=None):
             assert pixels.shape == (*data.shape, 4)
             assert np.all(pixels[..., 3] == 255)
             if item["id"] == 1:
-                reference = (make_movie._render_frame(display, vmin=vmin, vmax=vmax, cmap="inferno")
-                             if normalized else make_movie.plot_scaled_image(
-                                 data, scale="1/4" if stretch == "current" else "asinh"))
+                reference = make_movie._render_frame(display, vmin=vmin, vmax=vmax, cmap="inferno")
                 np.testing.assert_array_equal(pixels, reference)
             item["images"][stretch] = relative
             thumbnail = f"thumbs/{stretch}/{name}.webp"
@@ -263,11 +276,12 @@ def render(fits_path, output, public_output=None, poster_path=None):
         "study_id": "suncet-frame300-v1",
         "input": str(fits_path.resolve()), "input_sha256": hashlib.sha256(fits_path.read_bytes()).hexdigest(),
         "frame": 300, "shape": list(raw.shape), "date_obs": header.get("DATE-OBS"),
-        "rendering": {"radial_filter_sigma_pixels": 300, "origin": "upper (current renderer)",
-                      "current": {"stretch": "fourth root", "vmin": displays["current"][1],
-                                  "vmax": displays["current"][2]},
+        "rendering": {"radial_filter_sigma_pixels": None, "origin": "upper (current renderer)",
+                      "current": {"stretch": "log10", "vmin": low, "vmax": high,
+                                  "formula": "log10(max(I, vmin)/vmin) / log10(vmax/vmin)"},
                       "asinh": {"low": low, "high": high, "width": width,
-                                "limits": "Frame 300 finite 1st/99.7th percentiles; shared by every option"}},
+                                "formula": "asinh(max(I-low, 0)/width) / asinh((high-low)/width)",
+                                "limits": "43.2777 DN/s to image maximum; shared by every option"}},
         "versions": {"numpy": np.__version__, "matplotlib": matplotlib.__version__, "sunpy": sunpy.__version__},
         "brand_hex": BRAND, "poster_hex": POSTER, "mission_source": SUNPY_SOURCE,
         "options": [{k: v for k, v in item.items() if k != "cmap"} for item in items],
@@ -300,16 +314,15 @@ def render(fits_path, output, public_output=None, poster_path=None):
     (output / "README.md").write_text(
         "# SunCET color table study\n\n"
         f"Open index.html locally. There are {len(items)} distinct tables, each rendered at {raw.shape[1]} x {raw.shape[0]} pixels "
-        "with two shared stretches. The gallery starts with the current PNG stretch.\n\n"
+        "with two shared stretches. The gallery starts with log10.\n\n"
         f"Input: `{fits_path.resolve()}`\n\n" +
         ("The input is the pipeline's provisional exposure-normalized Level 1 frame (DN/s). "
-         "Both stretches use shared frame 1st/99.7th-percentile limits. "
+         "Both stretches use 43.2777 DN/s to the image maximum, with no radial filter. "
          "Effective exposures are recorded in manifest.json; this is not full Level 1 calibration. "
          if normalized else "The current reference is pixel-identical to make_movie.plot_scaled_image(scale='1/4'). ") +
-        "All images use the existing negative-value handling, sigma=300 radial filter, orientation, "
-        "and borderless renderer. The optional asinh images use the current renderer's single-frame "
-        "1st/99.7th-percentile limits and 3% softening, fixed across all tables. "
-        "These are not movie-wide sampled limits.\n\n"
+        "Images retain the existing orientation and borderless renderer. "
+        "Log10 and asinh (200 DN/s softening) match local experiment options 1 and 7. "
+        "The directory key 'current' is retained for compatibility and now means log10.\n\n"
         "Standard mission tables come from SunPy. Shared mission tables are combined into one option: "
         "AIA171/SUVI171/EUI174, AIA193/SUVI195, AIA335/SUVI284, AIA304/SUVI304/EUI304, "
         "AIA131/SUVI131, and AIA94/SUVI94. EUI-inspired amber is custom. "

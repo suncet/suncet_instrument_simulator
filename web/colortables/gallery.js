@@ -288,12 +288,12 @@
   function updatePreview() {
     const stretch = $('stretch').value;
     $('previewStretch').value = stretch;
-    $('referenceCaption').textContent = `01 / Current Inferno / ${stretch === 'current' ? 'fourth root' : 'asinh'}`;
+    $('referenceCaption').textContent = `01 / Current Inferno / ${stretch === 'current' ? 'Log10' : 'Asinh / 200 DN/s'}`;
     $('previewTitle').textContent = `${String(selected.id).padStart(2,'0')} / ${selected.title}`;
     $('referenceImage').src = items[0].images[stretch];
     $('selectedImage').src = selected.images[stretch];
     $('selectedImage').alt = selected.title;
-    $('selectedCaption').textContent = `${selected.title} / ${stretch === 'current' ? 'fourth root' : 'asinh'}`;
+    $('selectedCaption').textContent = `${selected.title} / ${stretch === 'current' ? 'Log10' : 'Asinh / 200 DN/s'}`;
     $('description').textContent = selected.description;
     $('fullImage').href = selected.images[stretch];
     $('lutLink').href = selected.lut;

@@ -1,6 +1,16 @@
 import numpy as np
 
-from exploration_notebooks.colortable_options import display_arrays, versioned_asset
+from exploration_notebooks.colortable_options import display_arrays, versioned_asset, voting_display_arrays
+
+
+def test_voting_stretches_match_selected_local_options():
+    from exploration_notebooks.stretch_options import variants
+    data = np.geomspace(1, 936214.2857142857, 1000).reshape(20, 50)
+    low, high, width, displays = voting_display_arrays(data)
+    assert (low, high, width) == (43.2777, float(data.max()), 200.)
+    experiment = variants(data)
+    np.testing.assert_array_equal(displays["current"][0], experiment[0]["pixels"])
+    np.testing.assert_array_equal(displays["asinh"][0], experiment[6]["pixels"])
 
 
 def test_normalized_frame_uses_shared_percentile_limits():

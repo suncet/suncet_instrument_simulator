@@ -81,9 +81,11 @@ npm test
 The published gallery now uses the pipeline's provisional exposure-normalized
 Level 1 frame 300 (DN/s), with effective exposures of 0.07 s inside and 11.25 s
 outside. This includes stack rejection and bit-shift normalization, not the full
-Level 1 calibration chain. Both stretches use shared frame percentile limits.
-The manifest records the source checksum and exposure metadata. Legacy stored-DN
-inputs retain the original fixed fourth-root limits and pixel-identical reference.
+Level 1 calibration chain. Both stretches use 43.2777 DN/s to the image maximum,
+without a radial filter: log10 and asinh with 200 DN/s softening (local experiment
+options 1 and 7). The `current` asset directory now contains log10 images.
+The manifest records the source checksum, exposure metadata, and exact formulas.
+The voting generator requires a Level 1 DN/s input.
 Generation removes local filesystem paths from public metadata and versions image
 URLs by content hash. Replacing images does not change the study ID or palette
 slugs and requires no database updates. Existing votes include earlier imagery.

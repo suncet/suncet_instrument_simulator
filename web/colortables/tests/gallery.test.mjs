@@ -16,6 +16,12 @@ test('normalized assets have content versions without changing voting identities
   assert.equal(manifest.processing.exposure_normalized,true);
   assert.equal(manifest.processing.fits_metadata.EFFEXPI,0.07);
   assert.equal(manifest.processing.fits_metadata.EFFEXPO,11.25);
+  assert.equal(manifest.rendering.radial_filter_sigma_pixels,null);
+  assert.equal(manifest.rendering.current.stretch,'log10');
+  assert.equal(manifest.rendering.current.vmin,43.2777);
+  assert.equal(manifest.rendering.asinh.low,43.2777);
+  assert.equal(manifest.rendering.asinh.width,200);
+  assert.equal(manifest.rendering.current.vmax,manifest.rendering.asinh.high);
   for (const relative of [manifest.social_image,...Object.values(manifest.overviews),
     ...manifest.options.flatMap(item=>[...Object.values(item.images),...Object.values(item.thumbnails)])]) {
     const [filename,query]=relative.split('?');
@@ -85,6 +91,9 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     await page.waitForFunction(()=>document.querySelector('#voteStatus').textContent.includes('Local preview'));
     assert.equal(await page.locator('.option').count(),40);
     assert.equal(await page.title(),'SunCET | Color Voting');
+    for (const selector of ['#stretch','#previewStretch']) {
+      assert.deepEqual(await page.locator(`${selector} option`).allTextContents(),['Log10','Asinh / 200 DN/s']);
+    }
     const socialImage=`https://suncet.github.io/suncet_instrument_simulator/${manifest.social_image}`;
     assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'),socialImage);
     assert.equal(await page.locator('meta[name="twitter:image"]').getAttribute('content'),socialImage);
@@ -167,7 +176,7 @@ test('gallery works locally and public votes persist, aggregate, undo, export, a
     assert.equal(await page.locator('#stretch').inputValue(),'current');
     for (const id of ['selectedImage','referenceImage']) assert.match(await page.locator('#'+id).getAttribute('src'),/^current\//);
     assert.match(await page.locator('#fullImage').getAttribute('href'),/^current\//);
-    assert.match(await page.locator('#referenceCaption').textContent(),/fourth root/);
+    assert.match(await page.locator('#referenceCaption').textContent(),/Log10/);
     await page.getByRole('button',{name:'Next palette',exact:true}).click();
     assert.equal(await page.locator('#previewStretch').inputValue(),'current');
     await page.selectOption('#previewStretch','asinh');
